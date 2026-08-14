@@ -19,6 +19,11 @@ the arms dict for a given batch, and a callable that computes
 bytes_theoretical for a given batch. Everything else -- the sweep loop, OOM
 truncation, CSV recording, single-shot profiling, and CLI parsing -- lives
 here so a bug fix in one place reaches every kernel.
+
+A module may register more than one RunnerSpec (e.g. bench/run_linear.py,
+one per (in_features, out_features) shape) by passing main() a list. Sweep
+mode runs every spec in the list. Profile mode uses --kernel to pick the
+one spec ncu should launch; with a single spec, --kernel is optional.
 """
 import argparse
 import sys
@@ -40,6 +45,19 @@ class RunnerSpec:
     kernel: str
     arms_for_batch: Callable[[int, torch.dtype], dict[str, Callable[[], object]]]
     bytes_theoretical: Callable[[int], int]
+
+
+def _select_spec(specs: list[RunnerSpec], kernel: str | None) -> RunnerSpec:
+    if kernel is None:
+        if len(specs) == 1:
+            return specs[0]
+        sys.exit("multiple kernel specs registered by this module; "
+                 f"specify --kernel one of: {sorted(s.kernel for s in specs)}")
+    for spec in specs:
+        if spec.kernel == kernel:
+            return spec
+    sys.exit(f"unknown kernel {kernel!r}; "
+             f"available: {sorted(s.kernel for s in specs)}")
 
 
 def run_single(spec: RunnerSpec, variant: str, batch: int, dtype: str) -> None:
@@ -81,15 +99,20 @@ def run_sweep(spec: RunnerSpec) -> None:
     record(rows, RESULTS_PATH)
 
 
-def main(spec: RunnerSpec) -> None:
+def main(specs: RunnerSpec | list[RunnerSpec]) -> None:
+    if isinstance(specs, RunnerSpec):
+        specs = [specs]
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kernel", default=spec.kernel)
+    parser.add_argument("--kernel", default=None)
     parser.add_argument("--variant", default=None)
     parser.add_argument("--batch", type=int, default=8)
     parser.add_argument("--dtype", choices=list(DTYPES), default="float32")
     args = parser.parse_args()
 
     if args.variant is not None:
+        spec = _select_spec(specs, args.kernel)
         run_single(spec, args.variant, args.batch, args.dtype)
     else:
-        run_sweep(spec)
+        for spec in specs:
+            run_sweep(spec)

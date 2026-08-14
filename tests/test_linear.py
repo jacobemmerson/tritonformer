@@ -34,9 +34,12 @@ def test_non_contiguous_input(device):
 
 
 def test_non_power_of_two_k_dimension(device):
-    """K=192 leaves a partial tile on the reduction axis; an unmasked load
-    there silently adds garbage to the accumulator."""
-    x = torch.randn(2, 64, 192, device=device)
-    w = torch.eye(192, device=device)
+    """K=100 with BLOCK_K=32 is 3 full tiles plus a 4-element remainder, a
+    genuine partial tile on the reduction axis. (K=192 divides evenly into
+    6 full BLOCK_K=32 tiles and would never exercise the K mask at all.)
+    An unmasked load on that remainder silently adds garbage to the
+    accumulator."""
+    x = torch.randn(2, 64, 100, device=device)
+    w = torch.eye(100, device=device)
     out = linear(x, w, None)
     torch.testing.assert_close(out, x, **TOL)

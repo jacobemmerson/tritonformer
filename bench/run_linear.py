@@ -12,6 +12,7 @@ See bench/runner.py for the sweep / single-shot profile contract shared by
 every bench/run_*.py module.
 """
 import csv
+import sys
 
 import torch
 
@@ -71,6 +72,7 @@ def _print_tflops_table() -> None:
 
 
 if __name__ == "__main__":
-    for k, n in SHAPES:
-        main(_make_spec(k, n))
-    _print_tflops_table()
+    specs = [_make_spec(k, n) for k, n in SHAPES]
+    main(specs)
+    if "--variant" not in sys.argv:
+        _print_tflops_table()
