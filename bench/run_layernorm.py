@@ -6,7 +6,7 @@ Two modes, selected by whether --variant is given:
   appends Measurement rows to bench/results/latency.csv. This is what a
   human runs directly.
 - Single-shot profile (--kernel --variant --batch --dtype, e.g.
-  `--variant triton --batch 8 --dtype fp32`): runs exactly one arm at one
+  `--variant triton --batch 8 --dtype float32`): runs exactly one arm at one
   batch size, launching it at least 10 times, and writes no CSV. This is
   the contract bench/profile.py::profile_kernel needs: it invokes this
   module under `ncu --launch-skip 5 --launch-count 1`, so ncu can only
@@ -26,7 +26,7 @@ SEQ, DIM = 64, 192
 BATCHES = [1, 8, 32, 128, 512]
 RESULTS_PATH = "bench/results/latency.csv"
 
-DTYPES = {"fp32": torch.float32, "fp16": torch.float16}
+DTYPES = {"float32": torch.float32, "float16": torch.float16}
 
 ARMS = {"torch": layernorm_torch, "triton": layernorm_triton}
 
@@ -48,13 +48,7 @@ def run_single(kernel: str, variant: str, batch: int, dtype: str) -> None:
 
 
 def run_sweep() -> None:
-    try:
-        clock = locked_clock_mhz()
-    except ValueError:
-        # bench/clocks.py chokes on nvidia-smi's "[N/A]" reply, which is
-        # exactly what an unlocked card reports. Treat that as "unlocked"
-        # (None) rather than touching shared infra outside this task's scope.
-        clock = None
+    clock = locked_clock_mhz()
     rows: list[Measurement] = []
     ceiling = None
     for batch in BATCHES:
@@ -78,7 +72,7 @@ def run_sweep() -> None:
         for variant, values in samples.items():
             rows.append(Measurement.build(
                 kernel="layernorm", variant=variant, batch=batch,
-                dtype="fp32", samples=values,
+                dtype="float32", samples=values,
                 bytes_theoretical=bytes_theoretical,
                 locked_clock_mhz=clock))
             print(f"batch={batch:>4} {variant:>6}: "
@@ -96,7 +90,7 @@ def main() -> None:
     parser.add_argument("--kernel", default="layernorm")
     parser.add_argument("--variant", choices=list(ARMS), default=None)
     parser.add_argument("--batch", type=int, default=8)
-    parser.add_argument("--dtype", choices=list(DTYPES), default="fp32")
+    parser.add_argument("--dtype", choices=list(DTYPES), default="float32")
     args = parser.parse_args()
 
     if args.variant is not None:

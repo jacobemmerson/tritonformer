@@ -8,7 +8,11 @@ def _query(field: str) -> int | None:
             capture_output=True, text=True, check=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         return None
-    return int(out.stdout.strip().splitlines()[0])
+    try:
+        return int(out.stdout.strip().splitlines()[0])
+    except ValueError:
+        # Unlocked/unsupported readings come back as "[N/A]".
+        return None
 
 
 def telemetry() -> tuple[int, int]:

@@ -1,8 +1,10 @@
 import csv
+import subprocess
 import time
 
 import triton
 
+from bench.clocks import locked_clock_mhz, telemetry
 from bench.harness import Measurement, compare, record
 
 
@@ -50,6 +52,21 @@ def test_record_writes_header_once(tmp_path):
         rows = list(csv.reader(handle))
     assert rows[0][0] == "timestamp"
     assert len(rows) == 3
+
+
+def test_unlocked_clock_reports_na_without_raising(monkeypatch):
+    """nvidia-smi reports "[N/A]" for clock/temp fields on an unlocked card
+    instead of an integer. _query must treat that as "unavailable" rather
+    than propagating the ValueError from int() -- this shipped as a bug
+    once already."""
+    def fake_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args=args, returncode=0, stdout="[N/A]\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert locked_clock_mhz() is None
+    assert telemetry() == (-1, -1)
 
 
 def test_flagged_when_clock_deviates():
