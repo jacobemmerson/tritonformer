@@ -21,6 +21,7 @@ truncation, CSV recording, single-shot profiling, and CLI parsing -- lives
 here so a bug fix in one place reaches every kernel.
 """
 import argparse
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -42,9 +43,12 @@ class RunnerSpec:
 
 
 def run_single(spec: RunnerSpec, variant: str, batch: int, dtype: str) -> None:
-    fn = spec.arms_for_batch(batch, DTYPES[dtype])[variant]
+    arms = spec.arms_for_batch(batch, DTYPES[dtype])
+    if variant not in arms:
+        sys.exit(f"unknown variant {variant!r} for kernel {spec.kernel!r}; "
+                 f"available: {sorted(arms)}")
     for _ in range(10):
-        fn()
+        arms[variant]()
     torch.cuda.synchronize()
 
 
