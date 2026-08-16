@@ -36,6 +36,11 @@ def linear(x: Tensor, weight: Tensor, bias: Tensor | None) -> Tensor:
     return F.linear(x, weight, bias)
 
 
+@register(Component.LINEAR, "torch_gelu")
+def linear_gelu(x: Tensor, weight: Tensor, bias: Tensor | None) -> Tensor:
+    return gelu(linear(x, weight, bias))
+
+
 @register(Component.ATTENTION, "torch")
 def attention(q: Tensor, k: Tensor, v: Tensor, scale: float) -> Tensor:
     scores = softmax((q @ k.transpose(-2, -1)) * scale)
