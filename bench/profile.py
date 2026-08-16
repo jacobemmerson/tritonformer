@@ -50,11 +50,23 @@ def parse_ncu_csv(text: str) -> list[dict[str, str]]:
 
 def profile_kernel(module: str, kernel: str, variant: str, batch: int,
                    dtype: str, launch_skip: int = 5,
-                   launch_count: int = 1) -> list[dict]:
+                   launch_count: int = 1,
+                   expected_kernels: int | None = None) -> list[dict]:
     """Profile a single steady-state launch.
 
     launch_skip avoids the cold first launch, whose counters reflect
     autotuning and cache-cold behaviour rather than steady state.
+
+    An arm can launch more than one distinct kernel per call (e.g. a
+    composed "separate op then op" arm), and ncu's --launch-count only
+    captures however many launches you ask for -- there is no built-in
+    signal that a capture window fell short and silently missed one of
+    them. expected_kernels lets the caller declare how many distinct
+    kernel_name values this arm should produce; a mismatch raises rather
+    than returning a partial, undercounted capture. Declaring a count is
+    simpler for a caller to get right than enumerating name substrings --
+    it doesn't require the caller to predict ncu's kernel-name mangling
+    (e.g. torch's templated elementwise kernel names).
     """
     command = [
         "ncu", "--csv", "--target-processes", "all",
@@ -73,12 +85,24 @@ def profile_kernel(module: str, kernel: str, variant: str, batch: int,
 
     stamp = datetime.now(timezone.utc).isoformat()
     sha, gpu = commit_sha(), gpu_name()
-    return [{
+    rows = [{
         "timestamp": stamp, "commit_sha": sha, "gpu": gpu,
         "kernel": kernel, "variant": variant, "batch": batch, "dtype": dtype,
         "kernel_name": row["Kernel Name"], "metric": row["Metric Name"],
         "unit": row.get("Metric Unit", ""), "value": row["Metric Value"],
     } for row in parse_ncu_csv(result.stdout)]
+
+    if expected_kernels is not None:
+        captured = sorted(set(row["kernel_name"] for row in rows))
+        if len(captured) != expected_kernels:
+            raise RuntimeError(
+                f"profile_kernel({kernel!r}, {variant!r}) expected "
+                f"{expected_kernels} distinct kernel launch(es) but "
+                f"captured {len(captured)}: {captured}. A silent partial "
+                f"capture would undercount this arm's traffic; raise "
+                f"launch_count or fix the arm.")
+
+    return rows
 
 
 def record_counters(rows: list[dict], path: str) -> None:
