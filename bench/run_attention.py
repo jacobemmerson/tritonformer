@@ -27,6 +27,17 @@ achieved_gbps for this arm is an approximation, not a tight bound --
 consistent with Task 13's finding that this formula already undershoots
 GEMM-containing arms.
 
+`triton_flash` (Task 15, rung 10) is the headline fused kernel: one
+program per (batch, head) computes q@k.T, the scale, softmax, and
+@v entirely in registers/shared memory -- the [B, H, 64, 64] score
+matrix this rung is named for never reaches DRAM. It is compared for
+DRAM traffic against `triton_composed`'s measured total (Task 13:
+76,306,272 bytes at batch 128), not against `torch` (`attention_torch`
+here is unfused by construction, four separate kernels) or against
+`F.scaled_dot_product_attention` (already a fused, non-materializing
+CUTLASS kernel on this sm_75 card -- `triton_flash` may legitimately
+lose to it on latency; see docs/findings/04-flash-attention.md).
+
 `triton_qkv_unfused` is the honest baseline for the fusion claim: the
 same qkv_w/qkv_b split into three [D, D] slices and projected with three
 separate Triton `linear` calls (mirroring what an unfused QKV rung would
@@ -42,7 +53,7 @@ import torch
 from bench.runner import RunnerSpec, main
 from model.baseline.layers import attention as attention_torch
 from model.kernels.attention import attention_composed as attention_triton
-from model.kernels.attention import attention_qkv_fused
+from model.kernels.attention import attention_flash, attention_qkv_fused
 from model.kernels.linear import linear
 
 HEADS, SEQ, HEAD_DIM = 3, 64, 64
@@ -71,6 +82,7 @@ def _arms_for_batch(batch: int, dtype: torch.dtype):
     return {
         "torch": lambda: attention_torch(q, k, v, SCALE),
         "triton_composed": lambda: attention_triton(q, k, v, SCALE),
+        "triton_flash": lambda: attention_flash(q, k, v, SCALE),
         "triton_qkv_fused": lambda: attention_qkv_fused(x, qkv_w, qkv_b, HEADS, SCALE),
         "triton_qkv_unfused": lambda: _qkv_unfused(x, qkv_w, qkv_b),
     }
