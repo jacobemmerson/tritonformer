@@ -1,11 +1,11 @@
 import pytest
 import torch
 import torch.nn.functional as F
-from model.kernels.attention import attention_composed
+from model.kernels.attention import attention_composed, attention_flash
 from tests.conftest import TOLERANCES
 
 TOL = TOLERANCES["attention"]
-VARIANTS = [attention_composed]
+VARIANTS = [attention_composed, attention_flash]
 
 
 @pytest.mark.parametrize("fn", VARIANTS)
@@ -47,3 +47,15 @@ def test_non_contiguous_head_split_layout(device, fn):
     assert not q.is_contiguous()
     expected = F.scaled_dot_product_attention(q, k, v)
     torch.testing.assert_close(fn(q, k, v, 64 ** -0.5), expected, **TOL)
+
+
+def test_flash_never_materializes_scores(device):
+    """A [B,H,S,S] score buffer for batch 512 would be 400MB. If the kernel
+    allocates one, this OOMs or shows a large allocation spike."""
+    torch.cuda.reset_peak_memory_stats()
+    q, k, v = (torch.randn(256, 3, 64, 64, device=device) for _ in range(3))
+    baseline = torch.cuda.max_memory_allocated()
+    attention_flash(q, k, v, 64 ** -0.5)
+    peak = torch.cuda.max_memory_allocated()
+    score_bytes = 256 * 3 * 64 * 64 * 4
+    assert peak - baseline < score_bytes
