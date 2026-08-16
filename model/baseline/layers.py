@@ -14,6 +14,13 @@ def layernorm(x: Tensor, weight: Tensor, bias: Tensor, eps: float) -> Tensor:
     return F.layer_norm(x, (x.shape[-1],), weight, bias, eps)
 
 
+@register(Component.LAYERNORM, "torch_residual")
+def layernorm_residual(x: Tensor, residual: Tensor, weight: Tensor,
+                       bias: Tensor, eps: float) -> tuple[Tensor, Tensor]:
+    updated = x + residual
+    return layernorm(updated, weight, bias, eps), updated
+
+
 @register(Component.GELU, "torch")
 def gelu(x: Tensor) -> Tensor:
     return F.gelu(x, approximate="tanh")
