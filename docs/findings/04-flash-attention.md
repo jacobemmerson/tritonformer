@@ -132,6 +132,27 @@ ops) is the direct cause of the 1.90x overshoot above the 25.17M-byte
 theoretical minimum, and a likely major contributor to the latency loss
 independent of the 1-block/SM occupancy ceiling.
 
+**Spill traffic vs. DRAM traffic saved -- the document's punchline:**
+
+- local-memory (spill) traffic: 39,714,816 + 20,840,448 = **60,555,264
+  bytes**
+- DRAM traffic saved vs `triton_composed`: 76,306,272 - 47,939,072 =
+  **28,367,200 bytes**
+- ratio: **2.13x** -- the fusion removed ~28.4 MB of DRAM traffic and
+  introduced ~60.6 MB of L1 local-memory traffic in its place.
+
+Caveat, so this isn't overstated: `l1tex__t_bytes_pipe_lsu_mem_local_op_ld/st.sum`
+is measured at L1, not at DRAM -- some of that spill traffic may be
+absorbed by L1/L2 and never actually reach DRAM, so it is **not**
+directly comparable to `dram__bytes_*` as a like-for-like byte count.
+Read the 2.13x figure as indicative of the mechanism (fusion traded
+traffic it could avoid for traffic through a costlier part of the memory
+pipeline), not as "60 MB of extra DRAM traffic." It is, however, the
+single clearest explanation on hand for why a kernel that cuts measured
+DRAM traffic by over a third still loses on latency: the traffic it
+removed was cheap (sequential DRAM reads/writes); the traffic it
+introduced replacing it runs through the local-memory spill path instead.
+
 ## Did occupancy of ~1 block/SM hurt on a 16-SM card?
 
 Yes, unambiguously, and it compounds with the register spilling rather
@@ -150,6 +171,18 @@ block, and that is consistent with losing on latency to both the
 presumably manages its register/shared-memory budget far more
 carefully (likely via a k-block loop even at this trivial size, or a
 tighter register allocation that avoids spilling entirely).
+
+## Untested masking path
+
+`_flash_kernel`'s `-inf` masking (for `seq_len < BLOCK_S`) is exercised
+nowhere in this codebase: `seq_len` is 64 everywhere `attention_flash` is
+called, equal to `BLOCK_S = triton.next_power_of_2(64) = 64`, so `mask_s`
+is always all-True and the masking branch is never taken. The masking
+logic is structurally correct (verified by inspection: a masked row still
+retains an unmasked lane for the max/softmax reduction to anchor on), but
+it has zero test coverage today. Worth knowing if the sequence length
+this project uses ever changes to something that isn't a power of 2, or
+to a size where `BLOCK_S` must exceed `seq_len`.
 
 ## Summary: what this kernel actually establishes
 
