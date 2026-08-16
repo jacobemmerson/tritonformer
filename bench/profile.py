@@ -40,7 +40,11 @@ def parse_ncu_csv(text: str) -> list[dict[str, str]]:
     for index, line in enumerate(lines):
         if line.startswith('"ID"'):
             reader = csv.DictReader(io.StringIO("\n".join(lines[index:])))
-            return [row for row in reader if row.get("Metric Name")]
+            rows = [row for row in reader if row.get("Metric Name")]
+            for row in rows:
+                if "Metric Value" in row and row["Metric Value"] is not None:
+                    row["Metric Value"] = row["Metric Value"].replace(",", "")
+            return rows
     return []
 
 
