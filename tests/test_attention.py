@@ -51,11 +51,21 @@ def test_non_contiguous_head_split_layout(device, fn):
 
 def test_flash_never_materializes_scores(device):
     """A [B,H,S,S] score buffer for batch 512 would be 400MB. If the kernel
-    allocates one, this OOMs or shows a large allocation spike."""
+    allocates one, this OOMs or shows a large allocation spike.
+
+    At S = head_dim = 64, out_bytes == score_bytes numerically, so a
+    threshold of `< score_bytes` is unsatisfiable by construction: the
+    kernel's own mandatory output allocation already equals score_bytes,
+    before any score buffer is even considered. The threshold must
+    account for the output allocation the kernel is required to make;
+    it should only fail an implementation that allocates a score buffer
+    on top of that.
+    """
     torch.cuda.reset_peak_memory_stats()
     q, k, v = (torch.randn(256, 3, 64, 64, device=device) for _ in range(3))
     baseline = torch.cuda.max_memory_allocated()
     attention_flash(q, k, v, 64 ** -0.5)
     peak = torch.cuda.max_memory_allocated()
-    score_bytes = 256 * 3 * 64 * 64 * 4
-    assert peak - baseline < score_bytes
+    out_bytes = 256 * 3 * 64 * 64 * 4      # the output the kernel must allocate
+    score_bytes = 256 * 3 * 64 * 64 * 4    # the [B,H,S,S] buffer it must NOT allocate
+    assert peak - baseline < out_bytes + score_bytes
