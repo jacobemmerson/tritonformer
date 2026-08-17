@@ -314,3 +314,162 @@ spilling.
   different, earlier mechanism than the register-spill story the brief
   anticipated, but no less honest a demonstration that "one kernel, hold
   everything" does not scale to a 768-wide hidden dimension on this card.
+
+---
+
+# Task 17 addendum: the fully fused transformer block (rung 13)
+
+The deliberate far end of the ladder, predicted to hurt *more* than the
+mega-MLP above. `block_composed` assembles the best individual Triton
+variant per sub-operation (`layernorm`, `qkv_project`, `attention_flash`,
+`linear`, `layernorm_residual`, `mlp_composed`); `block_fused` is
+identical except its last step is `mlp_fused` -- it inherits Task 16's
+mega-MLP by construction, since that kernel is one of its six sub-calls.
+
+## Step 1 (addendum): the monolithic variant does not compile either
+
+A `triton_fused_monolithic` variant -- one kernel holding a `[BLOCK_M,
+768]` MLP hidden tile *and* a `[64, 64]` attention tile simultaneously --
+was attempted as a standalone scratch prototype (not committed; the
+prototype is deliberately not numerically exact, since the point was
+only to test joint shared-memory residency). It combined per-head Q/K/V
+projection tiles, the attention score tile, the output-projection weight
+tile, and the MLP's `w1`/`w2` tiles, using the same `BLOCK_H`-tiled MLP
+loop structure Task 16 already found necessary. Every `BLOCK_H` tried
+(32, 16) failed identically:
+
+```
+OutOfResources: out of resource: shared memory, Required: 262144,
+Hardware limit: 65536. Reducing block sizes or `num_stages` may help.
+```
+
+**262,144 bytes required against a 65,536-byte budget -- 4x over --
+and, as with Task 16's MLP wall, unaffected by `BLOCK_H`.** This is a
+strictly larger version of Task 16's own wall: that rung's `w1`/`w2`
+tile alone was already ~16x the budget; this rung additionally needs
+attention's Q/K/V and score tiles live in the same program. A design
+that was already infeasible cannot become feasible by adding more
+simultaneous residents. Per the brief, this is treated as a legitimate,
+informative upper bound, not a failure to work around: `block_composed`
+stands as the maximum achievable fusion rung on this hardware.
+
+## Step 5: launch counts (torch.profiler, not nsys)
+
+**Substitution note:** the brief's Step 5 calls for `nsys profile
+--stats=true`. `nsys` is present (`command -v nsys` -> `/usr/bin/nsys`,
+exit 0), but is unusable in this environment: its importer is broken on
+this host and a capture writes a ~3.3 GB `.qdstrm` file against a disk
+that was at 98% utilization (~2.1 GB free) at measurement time. `nsys`
+was not run and nothing was installed. `torch.profiler`
+(`ProfilerActivity.CUDA`, `key_averages()`) was used instead -- Task 14
+made the identical substitution for the same reason, and it answers the
+same question (distinct CUDA kernel launches per call) without writing
+any capture file to disk.
+
+Per-arm launch counts, one call each, steady state (3 warm-up calls
+first), batch 1 and batch 512 identical:
+
+| arm | total CUDA launches/call | distinct kernel names |
+|---|---:|---:|
+| `torch` | 16 (b=1) / 17 (b=512) | 11 (b=1) / 9 (b=512) |
+| `triton_composed` | 12 | 7 |
+| `triton_fused` | **11** | 7 |
+
+`triton_fused` has the fewest total launches, as predicted: it replaces
+`mlp_composed`'s two kernels (`_linear_gelu_kernel`, `_linear_kernel`)
+with `mlp_fused`'s one (`_mlp_fused_kernel`), a net reduction of one
+launch per call. Distinct-kernel-name counts are equal (7 vs 7) because
+`triton_composed`'s `_linear_kernel` name is shared across three
+differently-shaped calls (QKV projection, output projection, and MLP's
+second matmul) that collapse to one name; the *total launch count* is
+the number that actually reflects the launch-overhead this rung is
+about, and it favors `triton_fused` as expected.
+
+## `profile_kernel` counters, both Triton arms, batch 1 and batch 512
+
+Cycle length confirmed empirically with `profile_kernel`'s
+`expected_kernels=7`: `launch_skip=20` (past tensor-construction setup
+and one cold warm-up call) with `launch_count` set to each arm's true
+per-call launch count (12 for `triton_composed`, 11 for `triton_fused`)
+landed cleanly on one full steady-state cycle at both batches.
+
+### DRAM traffic, summed across every launch in one full call cycle
+
+| batch | arm | read | write | total |
+|---:|---|---:|---:|---:|
+| 1 | `triton_composed` | 3,001,184 | 452,736 | 3,453,920 |
+| 1 | `triton_fused` | 2,804,960 | 417,344 | **3,222,304** |
+| 512 | `triton_composed` | 1,240,748,224 | 532,858,208 | 1,773,606,432 |
+| 512 | `triton_fused` | 792,514,656 | 432,452,672 | **1,224,967,328** |
+
+DRAM traffic is down for fused at both extremes -- 6.7% at batch 1,
+30.9% at batch 512 -- smaller reductions than Task 16's standalone MLP
+(11.4% / 73.1%) because the block's other five sub-kernels (identical
+between both arms) dilute the MLP-specific saving across a much larger
+total.
+
+### Per-kernel registers, occupancy, and spill (representative single
+launch per distinct kernel name; `_linear_kernel` is invoked with
+different shapes inside one call -- QKV projection, output projection,
+and, in `triton_composed` only, the MLP's second matmul -- so the value
+below is one captured instance, not a per-name sum)
+
+| kernel | regs/thread | warps_active% (b=1) | warps_active% (b=512) | spill ld+st (b=1) | spill ld+st (b=512) |
+|---|---:|---:|---:|---:|---:|
+| `_layernorm_kernel` | 28 | 48.3 | 92.3 | 0 | 0 |
+| `_layernorm_residual_kernel` | 27 | 48.3 | 94.1 | 0 | 0 |
+| `_linear_kernel` | 128 | 12.5 | 49.4 | 0 | 0 |
+| `_linear_gelu_kernel` (composed only) | 168 | 12.5 | 37.4 | 0 | 0 |
+| `_flash_kernel` | **255 (hw max)** | 12.5 | 12.5 | **473,088** | **242,221,056** |
+| `_mlp_fused_kernel` (fused only) | 226 | 25.0 | 25.0 | 0 | 0 |
+
+Every one of these values matches its calibration from the rung that
+introduced it (Task 12: 128/168 regs; Task 15: 255 regs, spilling; Task
+16: 226 regs, zero spill, 25.0% register-limited occupancy) -- the block
+kernel does not change any sub-kernel's individual behavior, only how
+many of them run per call and in what sequence. `_flash_kernel` is the
+only spilling kernel in the block, in both arms, at both batches; that
+spill is a property of Task 15's attention kernel alone and has nothing
+to do with block-level fusion.
+
+## Latency crossover
+
+| batch | torch ms | triton_composed ms | triton_fused ms | fused/composed | fused/torch |
+|------:|---------:|--------------------:|------------------:|---:|---:|
+|     1 |   0.1004 |               0.2247 |             0.4850 | 2.16x | 4.83x |
+|     8 |   0.3465 |               0.7279 |             1.7585 | 2.42x | 5.07x |
+|    32 |   1.4608 |               2.8155 |             6.9310 | 2.46x | 4.74x |
+|   128 |   5.5702 |              11.1456 |            27.6488 | 2.48x | 4.96x |
+|   512 |  22.1550 |              45.1341 |           112.7328 | 2.50x | 5.09x |
+
+**No crossover exists.** `triton_fused` loses to `triton_composed` at
+every measured batch, including batch 1, where the brief predicted
+fewer launches would win. The predicted headline result -- fusion wins
+small, loses large -- does not appear at the block level either,
+consistent with Task 16's finding one rung down. The fused/composed
+ratio drifts mildly upward with batch (2.16x -> 2.50x) rather than
+crossing 1.0 in either direction.
+
+One notable, unpredicted detail: the block-level fused/composed ratio
+(2.16x-2.50x) is *smaller* than the standalone MLP's own fused/composed
+ratio (3.10x-3.83x, from Step-5 above), even though `block_fused`
+contains that exact MLP kernel unmodified. This is pure dilution: five
+of the block's six sub-kernels are byte-identical between the two arms,
+so the MLP's 3-4x local penalty gets averaged against 1x-ratio work
+everywhere else, shrinking the *composite* ratio without the underlying
+kernel improving at all. A rung's fusion penalty, measured in isolation,
+overstates the damage it does once it is embedded in a larger pipeline
+where it is only one of several launches.
+
+## Conclusion: the condition under which fusion stops paying on this hardware
+
+**Fusion pays only when it removes DRAM round trips without being
+forced, by a tighter on-chip resource (shared memory for `tl.dot`
+operand staging, or the 255-register/thread ceiling), into small enough
+tiles that the resulting kernel does more sequential, non-overlapped
+work than the launches it replaced -- and on this GTX 1650 Ti, every
+kernel in this project large enough to be interesting (the whole-MLP
+merge, and now the whole-block merge) hit exactly that forcing
+function, so no fusion rung past attention (Task 15) has ever paid off
+on latency, and the compiler refuses to even build the next rung up
+(the monolithic block).**
