@@ -6,7 +6,13 @@ Three arms: `torch` (`model.baseline.layers.block`, the plain reference,
 six separate F.* calls), `triton_composed` (`model/kernels/block.py`'s
 `block_composed`: `layernorm`, `qkv_project` (one [D -> 3D] GEMM),
 `attention_flash`, `linear`, `layernorm_residual`, `mlp_composed` -- six
-kernel launches, the best individual Triton variant at every step), and
+kernel launches, the composition the fusion ladder's plan specified for
+this rung. `attention_flash` is used here because rung 10 is the
+ladder's designated attention rung, not because it was the fastest
+attention variant measured -- Task 15 measured `attention_flash` at
+1.49-2.24x *slower* than `attention_composed`, so `block_composed` is
+not a latency-optimal composition; a variant substituting
+`attention_composed` was never built or measured), and
 `triton_fused` (`block_fused`: identical except the last step is
 `mlp_fused`, Task 16's over-fused single-kernel MLP -- five launches).
 

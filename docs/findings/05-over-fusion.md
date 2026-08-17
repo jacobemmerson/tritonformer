@@ -330,9 +330,12 @@ spilling.
 # Task 17 addendum: the fully fused transformer block (rung 13)
 
 The deliberate far end of the ladder, predicted to hurt *more* than the
-mega-MLP above. `block_composed` assembles the best individual Triton
-variant per sub-operation (`layernorm`, `qkv_project`, `attention_flash`,
-`linear`, `layernorm_residual`, `mlp_composed`); `block_fused` is
+mega-MLP above. `block_composed` assembles the composition the fusion
+ladder's plan specified for this rung (`layernorm`, `qkv_project`,
+`attention_flash`, `linear`, `layernorm_residual`, `mlp_composed`) --
+using `attention_flash` because rung 10 is the ladder's designated
+attention rung, not because it measured fastest (it did not, see
+`04-flash-attention.md`); `block_fused` is
 identical except its last step is `mlp_fused` -- it inherits Task 16's
 mega-MLP by construction, since that kernel is one of its six sub-calls.
 
@@ -361,7 +364,14 @@ attention's Q/K/V and score tiles live in the same program. A design
 that was already infeasible cannot become feasible by adding more
 simultaneous residents. Per the brief, this is treated as a legitimate,
 informative upper bound, not a failure to work around: `block_composed`
-stands as the maximum achievable fusion rung on this hardware.
+stands as the maximum rung this ladder *reached* on this hardware, not
+a proven maximum achievable rung. `block_composed` uses `attention_flash`
+because rung 10 is the ladder's designated attention rung, not because
+it measured fastest -- `attention_flash` was measured 1.49-2.24x
+*slower* than `attention_composed` (above), so this composition is not
+latency-optimal, and a `block_composed` variant substituting
+`attention_composed` was never built or measured; that substitution is
+left as future work.
 
 ## Step 5: launch counts (torch.profiler, not nsys)
 
@@ -473,8 +483,8 @@ where it is only one of several launches.
 
 ## Conclusion: the condition under which fusion stops paying on this hardware
 
-**On this card, fusion stops paying once shared memory forces tiles too
-small to amortize the fusion, not once registers run out.**
+**Shared memory bounds fusion first, at compile time; registers collapse
+occupancy second, but fusion is already dead before registers spill.**
 
 Supporting evidence, each claim numbered and sourced:
 
@@ -492,6 +502,20 @@ Supporting evidence, each claim numbered and sourced:
 - mega-MLP (`mlp_fused`): **3.10x-3.83x slower** (this document, Task 16).
 - fused block (`block_fused`): **2.16x-2.50x slower** (this document,
   Task 17).
+- Shared memory binds first, at compile time: the mega-MLP's `w1`/`w2`
+  tile is 1,048,576 bytes against a 65,536-byte/SM budget (~16x over,
+  invariant in `BLOCK_M`, Step 1 above), and the monolithic block
+  kernel's 262,144-byte requirement is the same wall, one rung larger.
+- Registers collapse occupancy second, and this is the *measured* cause
+  of the mega-MLP's latency loss: 226 regs/thread x 256 threads/block =
+  57,856 -> 1 block/SM -> 25.00% occupancy, register-limited at every
+  batch (above).
+- The chain "shared memory forces `BLOCK_H=32` -> tiles too small to
+  amortize the fusion" is inferred from the compile-time arithmetic
+  above, not isolated by any experiment that varies tile size
+  independently of register pressure; the only pure shared-memory
+  datum is the monolithic kernel, which never compiled and so was
+  never measured directly.
 
 The boundary between fusion that pays and fusion that doesn't sits at
 the QKV-projection rung, several rungs before attention -- and

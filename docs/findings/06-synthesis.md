@@ -107,9 +107,10 @@ in the ladder where a different resource bound the same low number.
 **Caveat carried from Task 15**: local-memory (spill) counters are
 measured at L1, and some of that traffic may be absorbed by L1/L2 before
 reaching DRAM. They are not byte-for-byte comparable to
-`dram__bytes_read/write.sum`; the 2.13x ratio above compares like units
-(both L1-measured local-memory traffic vs. the DRAM-traffic delta), but
-should be read as directionally decisive, not as an exact accounting.
+`dram__bytes_read/write.sum`; the 2.13x ratio is indicative of mechanism,
+not an exact like-for-like accounting, because it compares L1-measured
+local-memory traffic against a DRAM-traffic delta -- read it as
+directionally decisive, not as an exact accounting.
 
 ## 3. Where the crossover sits
 
@@ -138,20 +139,42 @@ the whole sweep, mega-MLP loses 3.10-3.83x, and the fully fused block
 loses 2.16-2.50x. Nothing past the QKV-projection rung ever crosses back
 to a win.
 
-**This project's established conclusion, which this document does not
-revise:** *on this card, fusion stops paying once shared memory forces
-tiles too small to amortize the fusion, not once registers run out.* The
-evidence for shared memory (not registers) as the real wall is the
-monolithic block kernel that was attempted and never compiled: a single
-kernel combining even one head's Q/K/V tiles with the MLP's weight tiles
-required 262,144 bytes of shared memory against the 65,536-byte/SM
-budget — a 4x overflow, independent of any batch or block-size tuning
-tried. The compiler declining that fusion outright, at compile time,
+**Revised conclusion (see Fix 2 of the whole-branch review; this
+supersedes `05-over-fusion.md`'s original wording, now updated to
+match):** *Shared memory bounds fusion first, at compile time; registers
+collapse occupancy second, but fusion is already dead before registers
+spill.*
+
+- **Shared memory, compile-time:** the mega-MLP's `w1`/`w2` tile
+  (`BLOCK_D * BLOCK_H * 4` = 256 x 1024 x 4 = 1,048,576 bytes) is ~16x
+  the 65,536-byte/SM budget and does not shrink with `BLOCK_M`
+  (`05-over-fusion.md`, Step 1) — a genuine hard wall that fails to
+  compile at every `BLOCK_M` tried. The monolithic block kernel's
+  262,144-byte requirement (a 4x overflow) is the same wall, one rung
+  larger.
+- **Registers, runtime:** the *measured* cause of the mega-MLP's
+  3.10-3.83x loss is register-limited occupancy: 226 regs/thread x 256
+  threads/block = 57,856 -> 1 block/SM -> 25.00% occupancy, "register-
+  limited at every batch" (`05-over-fusion.md`).
+- **What is inferred, not measured:** the causal chain "shared memory
+  -> forces `BLOCK_H=32` -> tiles too small to amortize the fusion" is
+  inferred from the compile-time arithmetic above, not isolated by any
+  experiment that varies tile size independently of register pressure.
+  The only pure shared-memory datum in the project is the monolithic
+  kernel, which never ran (it failed to compile), so its latency effect
+  was never measured directly.
+
+The compiler declining that fusion outright, at compile time,
 before any runtime register or occupancy question could even arise, IS
 the result: it is a harder, earlier wall than the register-pressure
-story the brief predicted, and it is why `block_composed` (six
-best-individual-kernel launches) is the maximum achievable rung on this
-hardware, not the fully monolithic kernel.
+story the brief predicted. `block_composed` (the six-launch composition
+the ladder's plan specified for this rung, using `attention_flash`
+because rung 10 is the ladder's designated attention rung, not because
+it measured fastest -- see Section 2, 1.49-2.24x slower than
+`attention_composed`) is therefore the maximum rung this ladder reached
+on this hardware, not proven to be the maximum *achievable* rung: a
+composition substituting `attention_composed` was never built or
+measured, and is left as future work.
 
 ## 4. The 1650 Ti versus a second GPU
 

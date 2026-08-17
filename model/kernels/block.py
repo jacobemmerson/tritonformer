@@ -1,10 +1,15 @@
 """Rung 13: the fully fused transformer block, the deliberate far end of
 the fusion ladder. Predicted to hurt more than Task 16's mega-MLP.
 
-`block_composed` assembles the best individual Triton variant for each
-sub-operation. `block_fused` swaps in `mlp_fused` (Task 16's over-fused
-MLP) on top of the same fused attention and fused LayerNorm+residual --
-it inherits Task 16's 3-4x latency deficit by construction, since
+`block_composed` assembles the composition the fusion ladder's plan
+specified for this rung: `layernorm`, `qkv_project`, `attention_flash`,
+`linear`, `layernorm_residual`, `mlp_composed`. `attention_flash` is
+used because rung 10 is the ladder's designated attention rung, not
+because it measured fastest -- Task 15 found `attention_flash` 1.49-2.24x
+*slower* than `attention_composed`, so this composition is not
+latency-optimal. `block_fused` swaps in `mlp_fused` (Task 16's over-fused
+MLP) on top of the same attention and fused LayerNorm+residual -- it
+inherits Task 16's 3-4x latency deficit by construction, since
 `mlp_fused` is one of its six sub-calls.
 
 A `triton_fused_monolithic` variant that holds both a [BLOCK_M, 768]
@@ -16,7 +21,10 @@ the MLP's own w1/w2 tile alone required 1,048,576 bytes against a 65,536
 byte/SM budget, ~16x over, independent of batch tiling. A monolithic
 block kernel additionally needs Q/K/V tiles live at the same time, so it
 is strictly larger and was never expected to fit. `block_composed` is
-therefore the maximum achievable rung.
+therefore the maximum rung this ladder reached, not proven to be the
+maximum achievable rung: a composition substituting `attention_composed`
+for `attention_flash` (which measured faster, see above) was never built
+or measured, and is left as future work.
 """
 from torch import Tensor
 
