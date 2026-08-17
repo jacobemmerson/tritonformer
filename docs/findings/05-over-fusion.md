@@ -473,9 +473,8 @@ where it is only one of several launches.
 
 ## Conclusion: the condition under which fusion stops paying on this hardware
 
-**On this card, fusion pays only for single-epilogue kernels that keep
-register occupancy high; every fusion from the QKV-projection rung
-onward loses on latency.**
+**On this card, fusion stops paying once shared memory forces tiles too
+small to amortize the fusion, not once registers run out.**
 
 Supporting evidence, each claim numbered and sourced:
 
@@ -486,9 +485,10 @@ Supporting evidence, each claim numbered and sourced:
 - `triton_qkv_fused` wins only at batch 1 (0.0548ms vs 0.0868ms for
   `triton_qkv_unfused`), then is a wash or a loss at every larger batch
   (13.1648ms vs 13.1332ms at batch 512) (`04-flash-attention.md`).
-- `attention_flash`: **1.69x-2.16x slower** than both `triton_composed`
-  and `torch` at every batch (`04-flash-attention.md`) -- attention
-  itself never paid.
+- `attention_flash`: **1.49x-2.24x slower** than `triton_composed` and
+  `torch` across the full batch sweep 1-512 (1.69x/2.16x at batch 128
+  specifically) (`04-flash-attention.md`) -- attention itself never
+  paid.
 - mega-MLP (`mlp_fused`): **3.10x-3.83x slower** (this document, Task 16).
 - fused block (`block_fused`): **2.16x-2.50x slower** (this document,
   Task 17).
