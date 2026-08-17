@@ -2,10 +2,12 @@ import csv
 import subprocess
 import time
 
+import torch
 import triton
 
+import bench.harness as harness
 from bench.clocks import locked_clock_mhz, telemetry
-from bench.harness import Measurement, compare, record
+from bench.harness import Measurement, TelemetrySummary, compare, record
 
 
 def test_compare_runs_arms_interleaved(monkeypatch):
@@ -32,10 +34,44 @@ def test_compare_runs_arms_interleaved(monkeypatch):
     assert sum(1 for x, y in pairs if x == y) < len(pairs) / 2
 
 
-def test_compare_returns_samples_per_arm():
-    samples = compare({"a": lambda: None, "b": lambda: None}, reps=5)
+def test_compare_returns_samples_per_arm(monkeypatch):
+    monkeypatch.setattr(harness, "_sample_telemetry", lambda: (-1, -1))
+    samples, _telemetry = compare({"a": lambda: None, "b": lambda: None}, reps=5)
     assert set(samples) == {"a", "b"}
     assert all(len(v) == 5 for v in samples.values())
+
+
+def test_compare_telemetry_summary_takes_min_clock_and_max_temp(monkeypatch):
+    """compare() must sample telemetry DURING its rep loop and report the
+    worst (min clock, max temp) seen per arm, not a single post-hoc read --
+    a post-hoc read is exactly the bug this replaces: the GPU can idle and
+    recover to its locked clock in the moment between compare() returning
+    and a later telemetry read, so a row built from that read looks clean
+    even when the kernel ran through a real throttle dip."""
+    readings = iter([(1830, 60), (1830, 61), (300, 85), (1830, 62)])
+    monkeypatch.setattr(harness, "_sample_telemetry", lambda: next(readings))
+
+    samples, telemetry_summary = compare(
+        {"a": lambda: None}, reps=4, telemetry_interval=1)
+
+    assert len(samples["a"]) == 4
+    assert telemetry_summary["a"] == TelemetrySummary(
+        min_sm_clock_mhz=300, max_temp_c=85)
+
+
+def test_sample_telemetry_falls_back_to_nvidia_smi_when_nvml_unavailable(
+        monkeypatch):
+    """NVML (torch.cuda.clock_rate/temperature) is ~36x cheaper than the
+    nvidia-smi subprocess, so compare() prefers it -- but must not crash
+    a whole sweep if NVML is unavailable (e.g. nvidia-ml-py not installed,
+    or a driver mismatch raises inside torch's NVML bindings)."""
+    def raise_nvml_error(*_args, **_kwargs):
+        raise RuntimeError("NVML unavailable")
+
+    monkeypatch.setattr(torch.cuda, "clock_rate", raise_nvml_error)
+    monkeypatch.setattr(harness, "telemetry", lambda: (1234, 56))
+
+    assert harness._sample_telemetry() == (1234, 56)
 
 
 def test_record_writes_header_once(tmp_path):
@@ -74,4 +110,40 @@ def test_flagged_when_clock_deviates():
         kernel="k", variant="v", batch=1, dtype="float32",
         samples=[1.0, 1.0, 1.0], bytes_theoretical=1024,
         gpu="test", sm_clock_mhz=1000, temp_c=80, locked_clock_mhz=1500)
+    assert row.flagged is True
+
+
+def test_locked_clock_mhz_unset_returns_none(monkeypatch):
+    """No TRITONFORMER_LOCKED_CLOCK_MHZ declared means "no lock declared",
+    not "definitely unlocked" -- GeForce has no queryable read-back of an
+    `-lgc` lock, so None is the honest answer either way. Measurement.build
+    treats a falsy locked_clock_mhz as "don't flag"."""
+    monkeypatch.delenv("TRITONFORMER_LOCKED_CLOCK_MHZ", raising=False)
+    assert locked_clock_mhz() is None
+    row = Measurement.build(
+        kernel="k", variant="v", batch=1, dtype="float32",
+        samples=[1.0, 1.0, 1.0], bytes_theoretical=1024,
+        gpu="test", sm_clock_mhz=1000, temp_c=80,
+        locked_clock_mhz=locked_clock_mhz())
+    assert row.flagged is False
+
+
+def test_locked_clock_mhz_set_and_matching_is_not_flagged(monkeypatch):
+    monkeypatch.setenv("TRITONFORMER_LOCKED_CLOCK_MHZ", "1830")
+    assert locked_clock_mhz() == 1830
+    row = Measurement.build(
+        kernel="k", variant="v", batch=1, dtype="float32",
+        samples=[1.0, 1.0, 1.0], bytes_theoretical=1024,
+        gpu="test", sm_clock_mhz=1830, temp_c=60,
+        locked_clock_mhz=locked_clock_mhz())
+    assert row.flagged is False
+
+
+def test_locked_clock_mhz_set_and_drifting_is_flagged(monkeypatch):
+    monkeypatch.setenv("TRITONFORMER_LOCKED_CLOCK_MHZ", "1830")
+    row = Measurement.build(
+        kernel="k", variant="v", batch=1, dtype="float32",
+        samples=[1.0, 1.0, 1.0], bytes_theoretical=1024,
+        gpu="test", sm_clock_mhz=1200, temp_c=80,
+        locked_clock_mhz=locked_clock_mhz())
     assert row.flagged is True

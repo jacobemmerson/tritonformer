@@ -77,17 +77,20 @@ def run_sweep(spec: RunnerSpec) -> None:
     for batch in BATCHES:
         try:
             arms = spec.arms_for_batch(batch, torch.float32)
-            samples = compare(arms)
+            samples, telemetry_summary = compare(arms)
         except torch.cuda.OutOfMemoryError:
             ceiling = batch
             break
 
         bytes_theoretical = spec.bytes_theoretical(batch)
         for variant, values in samples.items():
+            summary = telemetry_summary[variant]
             rows.append(Measurement.build(
                 kernel=spec.kernel, variant=variant, batch=batch,
                 dtype="float32", samples=values,
                 bytes_theoretical=bytes_theoretical,
+                sm_clock_mhz=summary.min_sm_clock_mhz,
+                temp_c=summary.max_temp_c,
                 locked_clock_mhz=clock))
             print(f"batch={batch:>4} {variant:>6}: "
                   f"{rows[-1].latency_ms_median:.4f} ms  "
