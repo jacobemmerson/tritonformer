@@ -201,6 +201,16 @@ register-limiting coincide and its occupancy stays flat.
 
 ### `l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum` / `..._st.sum`
 
+Caveat, so these counters aren't overstated anywhere in this document:
+`l1tex__t_bytes_pipe_lsu_mem_local_op_ld/st.sum` is measured at L1, not
+at DRAM -- some of that traffic may be absorbed by L1/L2 and never
+actually reach DRAM, so it is **not** directly comparable byte-for-byte
+to `dram__bytes_*`. Read every local-memory figure in this document as
+indicative of the mechanism (a kernel spilling registers to local
+memory, or not), not as an exact DRAM-traffic accounting. (Same wording
+as `docs/findings/04-flash-attention.md`, which measured this first, on
+`_flash_kernel`.)
+
 | batch | `_linear_gelu_kernel` | `_linear_kernel` | `_mlp_fused_kernel` |
 |---:|---:|---:|---:|
 | 1   | 0 / 0 | 0 / 0 | **0 / 0** |
@@ -463,13 +473,18 @@ where it is only one of several launches.
 
 ## Conclusion: the condition under which fusion stops paying on this hardware
 
-**Fusion pays only when it removes DRAM round trips without being
-forced, by a tighter on-chip resource (shared memory for `tl.dot`
-operand staging, or the 255-register/thread ceiling), into small enough
-tiles that the resulting kernel does more sequential, non-overlapped
-work than the launches it replaced -- and on this GTX 1650 Ti, every
-kernel in this project large enough to be interesting (the whole-MLP
-merge, and now the whole-block merge) hit exactly that forcing
-function, so no fusion rung past attention (Task 15) has ever paid off
-on latency, and the compiler refuses to even build the next rung up
-(the monolithic block).**
+**On this GTX 1650 Ti, fusion pays only for small, single-epilogue
+Triton kernels that stay near full register occupancy --
+`layernorm_residual` (+22-31% faster than the unfused pair) and
+`linear_gelu` (+9-11% faster) -- while every larger fusion from QKV
+projection onward has failed to pay on latency (`triton_qkv_fused` beats
+`triton_qkv_unfused` only at batch 1, 0.0548ms vs 0.0868ms, and is a
+wash or a loss at every larger batch, e.g. 13.1648ms vs 13.1332ms at
+batch 512), so the boundary between fusion that pays and fusion that
+doesn't sits at the QKV-projection rung -- several rungs before
+attention, which itself never paid either (`attention_flash` is
+1.69x-2.16x slower than both `triton_composed` and `torch` at every
+batch, per `docs/findings/04-flash-attention.md`) -- and nothing fused
+at or past that boundary (flash attention, the mega-MLP at 3.10x-3.83x
+slower, or the fused block at 2.16x-2.50x slower) has ever won on
+latency.**
