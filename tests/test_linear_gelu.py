@@ -30,3 +30,5 @@ def test_large_activations_do_not_overflow(device):
     b = torch.zeros(768, device=device)
     out = linear_gelu(x, w, b)
     assert torch.isfinite(out).all()
+    expected = F.gelu(F.linear(x, w, b), approximate="tanh")
+    torch.testing.assert_close(out, expected, **TOL)
