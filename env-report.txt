@@ -1,0 +1,75 @@
+=== GPU ===
+Fri Aug 14 15:12:53 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.173.02             Driver Version: 580.173.02     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce GTX 1650 Ti     Off |   00000000:01:00.0 Off |                  N/A |
+| N/A   57C    P8              3W /   50W |     164MiB /   4096MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A            6301      C   ...rabbit-hole/.venv/bin/python3        160MiB |
++-----------------------------------------------------------------------------------------+
+=== Supported graphics clocks (pick a lock value from these) ===
+graphics [MHz]
+2100 MHz
+2085 MHz
+2070 MHz
+2055 MHz
+2040 MHz
+2025 MHz
+2010 MHz
+1995 MHz
+1980 MHz
+1965 MHz
+1950 MHz
+1935 MHz
+1920 MHz
+1905 MHz
+1890 MHz
+1875 MHz
+1860 MHz
+1845 MHz
+1830 MHz
+=== Thermals / power ===
+        GPU Current Temp                               : 57 C
+        GPU Slowdown Temp                              : 97 C
+        Current Power Limit                            : 50.00 W
+        Requested Power Limit                          : 50.00 W
+        Default Power Limit                            : 50.00 W
+        Min Power Limit                                : 1.00 W
+        Max Power Limit                                : 50.00 W
+        Current Power Limit                            : N/A
+        Requested Power Limit                          : N/A
+        Default Power Limit                            : N/A
+        Min Power Limit                                : N/A
+        Max Power Limit                                : N/A
+        Graphics                                       : 300 MHz
+        Graphics                                       : 2100 MHz
+=== Toolchain ===
+Command 'python' not found, did you mean:
+  command 'python3' from deb python3
+  command 'python' from deb python-is-python3
+Command 'python' not found, did you mean:
+  command 'python3' from deb python3
+  command 'python' from deb python-is-python3
+Command 'python' not found, did you mean:
+  command 'python3' from deb python3
+  command 'python' from deb python-is-python3
+=== Nsight ===
+Command 'ncu' not found, but can be installed with:
+sudo apt install nsight-compute
+Command 'nsys' not found, but can be installed with:
+sudo apt install nsight-systems
+=== ncu permission check ===
+Command 'ncu' not found, but can be installed with:
+sudo apt install nsight-compute
