@@ -34,10 +34,31 @@ def test_matches_reference(device, fn, batch):
 
 @pytest.mark.parametrize("fn", VARIANTS)
 def test_residual_path_preserved(device, fn):
-    """With zeroed output projections the block must be close to identity,
-    which catches a dropped or double-applied residual."""
+    """With proj_w left non-zero and only w2 zeroed, the MLP contributes
+    nothing but the attention residual (proj_out + x) still carries a
+    real signal, so the block's output must equal that post-attention
+    residual -- not x.
+
+    An earlier version of this test zeroed proj_w as well as w2. That
+    made `residual = proj_out + x` collapse to exactly `x` for both the
+    correct wiring and a buggy one that applies the second residual to
+    the pre-attention `x` instead of the post-attention `residual`: with
+    proj_w zeroed, those two quantities are identical, so the mis-wired
+    variant reproduced the correct output and the test could not
+    discriminate. Keeping proj_w non-zero makes the two paths diverge:
+    the correct block returns `residual = proj_out + x`, the mis-wired
+    one would return `x` again, so asserting output != x is exactly the
+    check that catches a residual applied to the wrong tensor.
+    """
     x = torch.randn(4, 64, 192, device=device)
     p = params(device)
-    p["proj_w"] = torch.zeros_like(p["proj_w"])
     p["w2"] = torch.zeros_like(p["w2"])
-    torch.testing.assert_close(fn(x, **p), x, **TOL)
+    out = fn(x, **p)
+    torch.testing.assert_close(out, block_reference(x, **p), **TOL)
+    # A mis-wired second residual (applied to x instead of the
+    # post-attention residual) would return exactly x here, since the
+    # MLP contributes nothing. Requiring a real gap catches that bug.
+    max_diff = (out - x).abs().max().item()
+    assert max_diff > 1e-3, (
+        f"block output is indistinguishable from x (max abs diff "
+        f"{max_diff}); the post-attention residual never propagated")
