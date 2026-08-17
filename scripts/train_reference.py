@@ -4,6 +4,13 @@ Run this ONCE. Every accuracy comparison for the life of the project
 comes from the resulting file; retraining invalidates historical numbers.
 """
 import argparse
+import sys
+from pathlib import Path
+
+# pyproject.toml's pythonpath applies only to pytest, not direct execution;
+# add the repo root so `model.*` resolves when this script is run directly.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
