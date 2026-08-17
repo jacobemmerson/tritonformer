@@ -473,18 +473,26 @@ where it is only one of several launches.
 
 ## Conclusion: the condition under which fusion stops paying on this hardware
 
-**On this GTX 1650 Ti, fusion pays only for small, single-epilogue
-Triton kernels that stay near full register occupancy --
-`layernorm_residual` (+22-31% faster than the unfused pair) and
-`linear_gelu` (+9-11% faster) -- while every larger fusion from QKV
-projection onward has failed to pay on latency (`triton_qkv_fused` beats
-`triton_qkv_unfused` only at batch 1, 0.0548ms vs 0.0868ms, and is a
-wash or a loss at every larger batch, e.g. 13.1648ms vs 13.1332ms at
-batch 512), so the boundary between fusion that pays and fusion that
-doesn't sits at the QKV-projection rung -- several rungs before
-attention, which itself never paid either (`attention_flash` is
-1.69x-2.16x slower than both `triton_composed` and `torch` at every
-batch, per `docs/findings/04-flash-attention.md`) -- and nothing fused
-at or past that boundary (flash attention, the mega-MLP at 3.10x-3.83x
-slower, or the fused block at 2.16x-2.50x slower) has ever won on
-latency.**
+**On this card, fusion pays only for single-epilogue kernels that keep
+register occupancy high; every fusion from the QKV-projection rung
+onward loses on latency.**
+
+Supporting evidence, each claim numbered and sourced:
+
+- `layernorm_residual`: **+22-31% faster** than the unfused pair
+  (`docs/findings/02-layernorm-fusion.md`).
+- `linear_gelu`: **+9-11% faster** than the unfused pair
+  (`docs/findings/03-epilogue-fusion.md`).
+- `triton_qkv_fused` wins only at batch 1 (0.0548ms vs 0.0868ms for
+  `triton_qkv_unfused`), then is a wash or a loss at every larger batch
+  (13.1648ms vs 13.1332ms at batch 512) (`04-flash-attention.md`).
+- `attention_flash`: **1.69x-2.16x slower** than both `triton_composed`
+  and `torch` at every batch (`04-flash-attention.md`) -- attention
+  itself never paid.
+- mega-MLP (`mlp_fused`): **3.10x-3.83x slower** (this document, Task 16).
+- fused block (`block_fused`): **2.16x-2.50x slower** (this document,
+  Task 17).
+
+The boundary between fusion that pays and fusion that doesn't sits at
+the QKV-projection rung, several rungs before attention -- and
+attention was already on the losing side, not the boundary itself.
