@@ -2239,3 +2239,59 @@ timestamp,commit_sha,gpu,kernel,variant,batch,dtype,kernel_name,metric,unit,valu
 2026-08-17T18:37:52.046342+00:00,e5d8303,NVIDIA GeForce GTX 1650 Ti,vit_forward,triton_fused,1,float32,"void dot_kernel<float, (int)128, (int)0, cublasDotParams<cublasGemvTensorStridedBatched<const float>, cublasGemvTensorStridedBatched<float>>>(T4)",l1tex__t_sector_hit_rate.pct,%,56.60
 2026-08-17T18:37:52.046342+00:00,e5d8303,NVIDIA GeForce GTX 1650 Ti,vit_forward,triton_fused,1,float32,"void dot_kernel<float, (int)128, (int)0, cublasDotParams<cublasGemvTensorStridedBatched<const float>, cublasGemvTensorStridedBatched<float>>>(T4)",launch__registers_per_thread,register/thread,28
 2026-08-17T18:37:52.046342+00:00,e5d8303,NVIDIA GeForce GTX 1650 Ti,vit_forward,triton_fused,1,float32,"void dot_kernel<float, (int)128, (int)0, cublasDotParams<cublasGemvTensorStridedBatched<const float>, cublasGemvTensorStridedBatched<float>>>(T4)",sm__warps_active.avg.pct_of_peak_sustained_active,%,68.05
+2026-08-17T21:40:38.954441+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,softmax,triton_tuned,128,float32,_softmax_tuned_kernel,dram__bytes_read.sum,byte,6315904
+2026-08-17T21:40:38.954441+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,softmax,triton_tuned,128,float32,_softmax_tuned_kernel,dram__bytes_write.sum,byte,6004192
+2026-08-17T21:40:38.954441+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,softmax,triton_tuned,128,float32,_softmax_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-08-17T21:40:38.954441+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,softmax,triton_tuned,128,float32,_softmax_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-08-17T21:40:38.954441+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,softmax,triton_tuned,128,float32,_softmax_tuned_kernel,l1tex__t_sector_hit_rate.pct,%,0
+2026-08-17T21:40:38.954441+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,softmax,triton_tuned,128,float32,_softmax_tuned_kernel,launch__registers_per_thread,register/thread,19
+2026-08-17T21:40:38.954441+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,softmax,triton_tuned,128,float32,_softmax_tuned_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,91.40
+2026-08-17T21:43:01.266050+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n576,triton_tuned,128,float32,_linear_tuned_kernel,dram__bytes_read.sum,byte,21359136
+2026-08-17T21:43:01.266050+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n576,triton_tuned,128,float32,_linear_tuned_kernel,dram__bytes_write.sum,byte,18580128
+2026-08-17T21:43:01.266050+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n576,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-08-17T21:43:01.266050+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n576,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-08-17T21:43:01.266050+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n576,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_sector_hit_rate.pct,%,2.05
+2026-08-17T21:43:01.266050+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n576,triton_tuned,128,float32,_linear_tuned_kernel,launch__registers_per_thread,register/thread,128
+2026-08-17T21:43:01.266050+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n576,triton_tuned,128,float32,_linear_tuned_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,49.36
+2026-08-17T21:45:18.224623+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n192,triton_tuned,128,float32,_linear_tuned_kernel,dram__bytes_read.sum,byte,8612672
+2026-08-17T21:45:18.224623+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n192,triton_tuned,128,float32,_linear_tuned_kernel,dram__bytes_write.sum,byte,6024640
+2026-08-17T21:45:18.224623+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n192,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-08-17T21:45:18.224623+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n192,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-08-17T21:45:18.224623+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n192,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_sector_hit_rate.pct,%,1.70
+2026-08-17T21:45:18.224623+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n192,triton_tuned,128,float32,_linear_tuned_kernel,launch__registers_per_thread,register/thread,128
+2026-08-17T21:45:18.224623+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n192,triton_tuned,128,float32,_linear_tuned_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,48.97
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::FillFunctor<int>, std::array<char *, (unsigned long)1>>(int, T2, T3)",dram__bytes_read.sum,byte,220736
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::FillFunctor<int>, std::array<char *, (unsigned long)1>>(int, T2, T3)",dram__bytes_write.sum,byte,268052832
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::FillFunctor<int>, std::array<char *, (unsigned long)1>>(int, T2, T3)",l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::FillFunctor<int>, std::array<char *, (unsigned long)1>>(int, T2, T3)",l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::FillFunctor<int>, std::array<char *, (unsigned long)1>>(int, T2, T3)",l1tex__t_sector_hit_rate.pct,%,0
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::FillFunctor<int>, std::array<char *, (unsigned long)1>>(int, T2, T3)",launch__registers_per_thread,register/thread,16
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,"void at::native::vectorized_elementwise_kernel<(int)4, at::native::FillFunctor<int>, std::array<char *, (unsigned long)1>>(int, T2, T3)",sm__warps_active.avg.pct_of_peak_sustained_active,%,95.28
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,_linear_tuned_kernel,dram__bytes_read.sum,byte,27396416
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,_linear_tuned_kernel,dram__bytes_write.sum,byte,24693152
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_sector_hit_rate.pct,%,0
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,_linear_tuned_kernel,launch__registers_per_thread,register/thread,255
+2026-08-17T21:54:13.622491+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned,128,float32,_linear_tuned_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,12.49
+2026-08-17T21:58:15.581745+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n768,triton_tuned,128,float32,_linear_tuned_kernel,dram__bytes_read.sum,byte,26995168
+2026-08-17T21:58:15.581745+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n768,triton_tuned,128,float32,_linear_tuned_kernel,dram__bytes_write.sum,byte,24870304
+2026-08-17T21:58:15.581745+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n768,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-08-17T21:58:15.581745+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n768,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-08-17T21:58:15.581745+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n768,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_sector_hit_rate.pct,%,0
+2026-08-17T21:58:15.581745+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n768,triton_tuned,128,float32,_linear_tuned_kernel,launch__registers_per_thread,register/thread,255
+2026-08-17T21:58:15.581745+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k192_n768,triton_tuned,128,float32,_linear_tuned_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,12.49
+2026-08-17T21:59:59.273900+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned_gelu,128,float32,_linear_gelu_tuned_kernel,dram__bytes_read.sum,byte,42929728
+2026-08-17T21:59:59.273900+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned_gelu,128,float32,_linear_gelu_tuned_kernel,dram__bytes_write.sum,byte,50560832
+2026-08-17T21:59:59.273900+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned_gelu,128,float32,_linear_gelu_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,77070336
+2026-08-17T21:59:59.273900+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned_gelu,128,float32,_linear_gelu_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,54263808
+2026-08-17T21:59:59.273900+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned_gelu,128,float32,_linear_gelu_tuned_kernel,l1tex__t_sector_hit_rate.pct,%,17.41
+2026-08-17T21:59:59.273900+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned_gelu,128,float32,_linear_gelu_tuned_kernel,launch__registers_per_thread,register/thread,255
+2026-08-17T21:59:59.273900+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_gelu,triton_tuned_gelu,128,float32,_linear_gelu_tuned_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,24.98
+2026-08-17T22:00:21.146256+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k768_n192,triton_tuned,128,float32,_linear_tuned_kernel,dram__bytes_read.sum,byte,34898752
+2026-08-17T22:00:21.146256+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k768_n192,triton_tuned,128,float32,_linear_tuned_kernel,dram__bytes_write.sum,byte,6125280
+2026-08-17T22:00:21.146256+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k768_n192,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-08-17T22:00:21.146256+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k768_n192,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-08-17T22:00:21.146256+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k768_n192,triton_tuned,128,float32,_linear_tuned_kernel,l1tex__t_sector_hit_rate.pct,%,0
+2026-08-17T22:00:21.146256+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k768_n192,triton_tuned,128,float32,_linear_tuned_kernel,launch__registers_per_thread,register/thread,255
+2026-08-17T22:00:21.146256+00:00,25f6e37,NVIDIA GeForce GTX 1650 Ti,linear_k768_n192,triton_tuned,128,float32,_linear_tuned_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,12.50

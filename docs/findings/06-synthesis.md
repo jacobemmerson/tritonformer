@@ -52,6 +52,27 @@ active). Consequences:
    a ratio between arms measured this way, so it survives the throttling
    even though the absolute numbers underneath it do not.
 
+**Retuned kernels exist as a separate follow-up.** `docs/findings/07-retuning.md`
+adds tuned `softmax` and `linear`/`linear_gelu` variants, measured under an
+explicit clock-lock declaration (`TRITONFORMER_LOCKED_CLOCK_MHZ`, see
+`bench/clocks.py`) with telemetry sampled during measurement rather than
+after it (a bug fix also documented there) rather than the throttled,
+unlocked, post-hoc-sampled conditions described above. An 1830 MHz lock was
+attempted first and failed to hold within the card's 50 W envelope; the
+numbers in that document were collected under a 1300 MHz-target lock that
+itself intermittently throttled to 300 MHz under sustained load. It isolates
+how much of the naive-Triton-vs-torch deficit reported in this document was a
+configuration artifact (undersized tiles, no L2 swizzle) versus intrinsic to
+Triton on this card. It does not revise any number in this document, with one
+qualification: `docs/findings/07-retuning.md` found that once *both* the
+composed and fused `linear_gelu` arms are autotuned, the fusion's naive-kernel
+win (+9-11%, Section 1 below and `03-epilogue-fusion.md`) reverses — the
+autotuned composed arm is 4.7-13.8% faster than the autotuned fused arm,
+verified on clean unthrottled data. Section 1's naive-kernel numbers below are
+unchanged and correct for the naive kernels they describe; the "two fusions
+paid off" count only holds at the naive-kernel tuning level this document
+measured.
+
 ## 1. Which fusions helped, at which batch sizes, and by how much
 
 | Fusion | Rung | Helped at | Margin | Traffic ratio (measured vs predicted) |

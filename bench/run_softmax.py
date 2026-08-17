@@ -10,6 +10,7 @@ import torch
 from bench.runner import RunnerSpec, main
 from model.baseline.layers import softmax as softmax_torch
 from model.kernels.softmax import softmax as softmax_triton
+from model.kernels.softmax import softmax_tuned as softmax_triton_tuned
 
 HEADS, SEQ = 3, 64
 
@@ -19,6 +20,7 @@ def _arms_for_batch(batch: int, dtype: torch.dtype):
     return {
         "torch": lambda: softmax_torch(x),
         "triton": lambda: softmax_triton(x),
+        "triton_tuned": lambda: softmax_triton_tuned(x),
     }
 
 

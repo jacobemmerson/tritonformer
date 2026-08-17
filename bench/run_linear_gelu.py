@@ -23,6 +23,8 @@ from model.baseline.layers import linear_gelu as linear_gelu_torch
 from model.kernels.gelu import gelu as gelu_triton
 from model.kernels.linear import linear as linear_triton
 from model.kernels.linear import linear_gelu as linear_gelu_triton
+from model.kernels.linear import linear_gelu_tuned as linear_gelu_triton_tuned
+from model.kernels.linear import linear_tuned as linear_triton_tuned
 
 SEQ, K, N = 64, 192, 768
 RESULTS_PATH = "bench/results/latency.csv"
@@ -36,6 +38,8 @@ def _arms_for_batch(batch: int, dtype: torch.dtype):
         "torch_gelu": lambda: linear_gelu_torch(x, w, b),
         "triton": lambda: gelu_triton(linear_triton(x, w, b)),
         "triton_gelu": lambda: linear_gelu_triton(x, w, b),
+        "triton_tuned": lambda: gelu_triton(linear_triton_tuned(x, w, b)),
+        "triton_tuned_gelu": lambda: linear_gelu_triton_tuned(x, w, b),
     }
 
 

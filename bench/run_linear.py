@@ -19,6 +19,7 @@ import torch
 from bench.runner import RunnerSpec, main
 from model.baseline.layers import linear as linear_torch
 from model.kernels.linear import linear as linear_triton
+from model.kernels.linear import linear_tuned as linear_triton_tuned
 
 SEQ = 64
 RESULTS_PATH = "bench/results/latency.csv"
@@ -35,6 +36,7 @@ def _make_spec(k: int, n: int) -> RunnerSpec:
         return {
             "torch": lambda: linear_torch(x, w, b),
             "triton": lambda: linear_triton(x, w, b),
+            "triton_tuned": lambda: linear_triton_tuned(x, w, b),
         }
 
     def _bytes_theoretical(batch: int) -> int:
