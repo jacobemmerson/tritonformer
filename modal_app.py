@@ -22,6 +22,8 @@ byte-identical -- ``bench/harness.record()`` writes a header only when the file
 is new, so a schema drift would corrupt 400+ existing rows silently.
 """
 import argparse
+import csv
+import json
 import os
 import subprocess
 import sys
@@ -33,7 +35,28 @@ COUNTERS_CSV = "bench/results/counters.csv"
 
 TORCH_INDEX = "https://download.pytorch.org/whl/cu128"
 
-SWEEP_MODULES = [
+# (module, kernel, variants, batch) chosen to line up with rows counters.csv
+# Ordered decisive-first: prediction 1 is about a [128, 3, 64, 64] fp32
+# intermediate, which is the attention score matrix at batch 128, so the
+# attention pair is the measurement that scores it. layernorm_residual follows
+# because prediction 1's stated consequence is about that rung's 22-25% win;
+# mlp is the third fusion pair with existing sm_75 rows to compare against.
+# already holds for the GTX 1650 Ti, so prediction 1's composed-vs-fused DRAM
+# comparison is like-for-like across the two cards.
+COUNTER_GRID = [
+    ("bench.run_attention", "attention",
+     ["triton_composed", "triton_flash"], 128),
+    ("bench.run_mlp", "mlp", ["triton_composed", "triton_fused"], 128),
+    ("bench.run_layernorm_residual", "layernorm_residual",
+     ["triton", "triton_residual"], 128),
+]
+
+# Split so the sweep can be spent in two bounded pieces rather than one
+# unbounded one: the per-kernel runners are cheap and independent, while
+# bench.run_sweep drives the whole model and additionally pays Inductor's
+# compile for the torch_compile arm at every batch size. On a hard GPU budget,
+# losing the second is survivable; losing both to a single overrun is not.
+SWEEP_KERNEL_MODULES = [
     "bench.run_layernorm",
     "bench.run_layernorm_residual",
     "bench.run_gelu",
@@ -43,8 +66,9 @@ SWEEP_MODULES = [
     "bench.run_attention",
     "bench.run_mlp",
     "bench.run_block",
-    "bench.run_sweep",
 ]
+SWEEP_VIT_MODULES = ["bench.run_sweep"]
+SWEEP_MODULES = SWEEP_KERNEL_MODULES + SWEEP_VIT_MODULES
 
 # Ada allows 48 resident warps/SM against Turing's 32, while the register file
 # is 65,536 32-bit registers/SM on both. Occupancy percentages therefore do NOT
@@ -78,17 +102,47 @@ def _describe_device() -> str:
     ])
 
 
-def _run(command: list[str]) -> str:
+def _run(command: list[str], env: dict[str, str] | None = None) -> str:
     """Never raises. A missing binary is a result to report here (the ncu probe
     exists precisely to find out whether one is usable), not a crash that loses
     every other line of output the caller had already gathered."""
     try:
         result = subprocess.run(command, capture_output=True, text=True,
-                                cwd=os.getcwd())
+                                cwd=os.getcwd(), env=_env(env))
     except OSError as exc:
         return f"$ {' '.join(command)}\n[not runnable] {exc}\n"
     return (f"$ {' '.join(command)}\n[exit {result.returncode}]\n"
             f"{result.stdout}\n{result.stderr}\n")
+
+
+def _env(overrides: dict[str, str] | None = None) -> dict[str, str]:
+    return {**os.environ, **(overrides or {})}
+
+
+def _precision_env(precision: str) -> dict[str, str]:
+    """Triton's fp32 `tl.dot` precision, as an environment setting.
+
+    `TRITON_F32_DEFAULT` is the only correct lever here: the NVIDIA backend
+    hardcodes `default_dot_input_precision = "tf32"`, and the alternative --
+    passing `input_precision=` at each `tl.dot` call site -- would mean editing
+    kernels that every prior finding cites.
+
+    Why this exists at all: on sm_75 there are no TF32 tensor cores, so that
+    default silently degraded to IEEE fp32 and every measurement this project
+    has ever taken was IEEE without having to say so. On sm_89 the default
+    binds for real. Precision is therefore a variable this experiment must
+    control explicitly, not an invariant it can assume.
+    """
+    return {"TRITON_F32_DEFAULT": precision}
+
+
+def _body_in_subprocess(body: str, precision: str) -> str:
+    """Run one measurement body in a fresh process at a chosen Triton
+    precision. A fresh process, not an env poke plus a re-call: Triton reads
+    the knob during compilation and caches compiled kernels in-process, so
+    flipping the variable inside a live process would silently reuse kernels
+    built under the previous setting."""
+    return _run([sys.executable, "modal_app.py", body], _precision_env(precision))
 
 
 def _ncu_candidates() -> list[str]:
@@ -102,16 +156,24 @@ def smoke_body() -> str:
             + _run([sys.executable, "-m", "pytest", "-q", "tests/test_gelu.py"]))
 
 
-def tests_body(extra_args: tuple[str, ...] = ()) -> str:
-    """Streams pytest's output to the container's stdout instead of capturing
-    it. On a metered GPU, a suite that has produced no output for twenty
-    minutes is indistinguishable from a hung one unless you can see which test
-    it is sitting in -- and by the time a captured run returns, the money is
-    already spent."""
+def tests_body(precision: str = "ieee", extra_args: tuple[str, ...] = ()) -> str:
+    """The correctness gate, run at a stated Triton fp32 precision.
+
+    Streams pytest's output to the container's stdout instead of capturing it.
+    On a metered GPU, a suite that has produced no output for twenty minutes is
+    indistinguishable from a hung one unless you can see which test it is
+    sitting in -- and by the time a captured run returns, the money is already
+    spent.
+
+    `precision` defaults to "ieee" because that is what makes the L4 run
+    arithmetically equivalent to the sm_75 runs these tolerances were set
+    against. Tolerances are never the thing that moves; see tests/conftest.py.
+    """
     command = [sys.executable, "-m", "pytest", "-q", "--durations=15",
                *extra_args]
-    result = subprocess.run(command, text=True)
-    return f"$ {' '.join(command)}\n[exit {result.returncode}]\n"
+    result = subprocess.run(command, text=True, env=_env(_precision_env(precision)))
+    return (f"$ TRITON_F32_DEFAULT={precision} {' '.join(command)}\n"
+            f"[exit {result.returncode}]\n")
 
 
 def _compiled_mlp_fused_kernel(block_m: int, block_h: int, num_warps: int):
@@ -398,6 +460,63 @@ def monolithic_body() -> str:
     return "\n".join(lines)
 
 
+def precision_check_body() -> str:
+    """How far each `tl.dot`-based kernel lands from torch's fp32 reference at
+    the Triton precision this process was started with.
+
+    This is what turns "70 tests failed" into a mechanism: the same kernels,
+    the same inputs, the same reference, with only TRITON_F32_DEFAULT differing
+    between two runs. Reports against tests/conftest.py's declared tolerances
+    without touching them.
+    """
+    import torch
+    import triton
+    from model.baseline.layers import linear as linear_torch
+    from model.baseline.layers import mlp as mlp_torch
+    from model.kernels.linear import linear as linear_triton
+    from model.kernels.linear import linear_tuned
+    from model.kernels.mlp import mlp_composed, mlp_fused
+
+    torch.manual_seed(0)
+    seq, dim, hidden = 64, 192, 768
+    batch = 8
+    x = torch.randn(batch, seq, dim, device="cuda")
+    w = torch.randn(dim, dim, device="cuda") * 0.05
+    b = torch.randn(dim, device="cuda")
+    w1 = torch.randn(hidden, dim, device="cuda") * 0.05
+    b1 = torch.randn(hidden, device="cuda")
+    w2 = torch.randn(dim, hidden, device="cuda") * 0.05
+    b2 = torch.randn(dim, device="cuda")
+
+    cases = {
+        "linear": (lambda: linear_triton(x, w, b), lambda: linear_torch(x, w, b),
+                   1e-4, 1e-4),
+        "linear_tuned": (lambda: linear_tuned(x, w, b),
+                         lambda: linear_torch(x, w, b), 1e-4, 1e-4),
+        "mlp_composed": (lambda: mlp_composed(x, w1, b1, w2, b2),
+                         lambda: mlp_torch(x, w1, b1, w2, b2), 1e-4, 1e-4),
+        "mlp_fused": (lambda: mlp_fused(x, w1, b1, w2, b2),
+                      lambda: mlp_torch(x, w1, b1, w2, b2), 1e-4, 1e-4),
+    }
+    lines = [f"TRITON_F32_DEFAULT={os.environ.get('TRITON_F32_DEFAULT', '<unset>')}",
+             f"torch.backends.cuda.matmul.allow_tf32="
+             f"{torch.backends.cuda.matmul.allow_tf32}",
+             f"triton.knobs.language.fp32_default="
+             f"{triton.knobs.language.fp32_default}",
+             f"target={triton.runtime.driver.active.get_current_target()}"]
+    for name, (got_fn, ref_fn, rtol, atol) in cases.items():
+        got, ref = got_fn().float(), ref_fn().float()
+        abs_err = (got - ref).abs()
+        rel_err = abs_err / ref.abs().clamp_min(1e-12)
+        tolerated = abs_err <= (atol + rtol * ref.abs())
+        lines.append(
+            f"{name:>13}: max_abs={abs_err.max().item():.3e} "
+            f"max_rel={rel_err.max().item():.3e} "
+            f"outside_tolerance={(~tolerated).sum().item()}/{tolerated.numel()} "
+            f"(rtol={rtol} atol={atol})")
+    return "\n".join(lines)
+
+
 def counters_body() -> str:
     """The ncu permission probe (prediction 1's only admissible instrument).
 
@@ -440,36 +559,134 @@ def counters_body() -> str:
     return "\n".join(lines)
 
 
-def sweep_body() -> tuple[str, str]:
+def sweep_body(precision: str = "ieee",
+               modules: list[str] | None = None) -> tuple[str, str]:
     """Runs every latency runner, then hands back the container-local
-    latency.csv verbatim for the caller to merge. Returns (log, csv_text)."""
+    latency.csv verbatim for the caller to merge. Returns (log, csv_text).
+
+    IEEE, so that the rows appended to latency.csv are the same arithmetic the
+    sm_75 rows were taken under. TF32 latencies are reported in the task report
+    instead of written here: latency.csv has no column that could distinguish
+    the two precisions, and adding one would break `record()`'s header contract
+    for every existing row.
+    """
     log = []
-    for module in SWEEP_MODULES:
-        log.append(_run([sys.executable, "-m", module]))
+    for module in (modules or SWEEP_MODULES):
+        log.append(_run([sys.executable, "-m", module], _precision_env(precision)))
     return "\n".join(log), _read(LATENCY_CSV)
 
 
-def counter_grid_body() -> tuple[str, str]:
-    """The full counter grid, run only if the probe says counters work.
+_MEASURE_LAUNCHES = """
+import json
+import torch
+from torch.profiler import ProfilerActivity, profile
+import importlib
 
-    Reuses bench/collect_counters.py rather than defining a new grid here, so
-    the L4 rows are the same measurement as the sm_75 rows already in
-    counters.csv (same batch, same variants, same launch-window logic) and are
-    therefore comparable. Returns (log, csv_text).
+module = importlib.import_module({module!r})
+specs = module.SPEC if isinstance(module.SPEC, list) else [module.SPEC]
+spec = [s for s in specs if s.kernel == {kernel!r}][0]
+arm = spec.arms_for_batch({batch}, torch.float32)[{variant!r}]
+
+with torch.inference_mode():
+    for _ in range(3):
+        arm()
+    torch.cuda.synchronize()
+    with profile(activities=[ProfilerActivity.CUDA]) as prof:
+        arm()
+        torch.cuda.synchronize()
+
+names = [e.name for e in prof.events() if e.device_type.name == "CUDA"]
+print(json.dumps({{"stride": len(names), "distinct": len(set(names))}}))
+"""
+
+
+def _launches_per_call(module: str, kernel: str, variant: str, batch: int,
+                       precision: str) -> tuple[int, int]:
+    """(launches per steady-state call, distinct kernel names in one call).
+
+    Measured in a fresh subprocess for the reason bench/collect_counters.py
+    documents at length: measuring several arms back-to-back in one process
+    perturbs cuBLAS's per-shape algorithm cache and yields drifting launch
+    counts, while ncu always profiles a brand-new process.
+    """
+    script = _MEASURE_LAUNCHES.format(module=module, kernel=kernel,
+                                      variant=variant, batch=batch)
+    result = subprocess.run([sys.executable, "-c", script], capture_output=True,
+                            text=True, env=_env(_precision_env(precision)))
+    if result.returncode != 0:
+        raise RuntimeError(f"launch measurement failed for {module}/{variant}:\n"
+                           f"{result.stdout}\n{result.stderr}")
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    return payload["stride"], payload["distinct"]
+
+
+def counter_grid_body(precision: str = "ieee",
+                      include_vit: bool = False) -> tuple[str, str]:
+    """Prediction 1's measurement: DRAM traffic per arm, at the same kernels,
+    variants and batch sizes already measured on sm_75.
+
+    Prediction 1 says the L4's 48 MB L2 may absorb the intermediate that the
+    composed arms round-trip through DRAM on a ~1 MB-L2 card, so
+    `dram__bytes_read.sum` for the composed arms should collapse. That is a
+    comparison against specific existing rows in counters.csv, so this grid is
+    chosen to match them exactly rather than to be convenient: same kernel,
+    same variant, same batch, same metric set.
+
+    `bench.collect_counters` supplies the vit_forward batch-1 grid unchanged.
+    The per-kernel arms it does not cover are profiled here directly through
+    `bench.profile.profile_kernel`, with the launch window measured per arm --
+    a composed arm launches several kernels per call, and a window that does
+    not cover exactly one whole call either misses traffic or double-counts it.
+
+    Returns (log, csv_text).
     """
     os.environ.setdefault("TRITONFORMER_NCU_CLOCK_CONTROL", "none")
     ncu = next((c for c in _ncu_candidates() if os.path.dirname(c)
                 and os.path.exists(c)), None)
     if ncu:
         os.environ["PATH"] = f"{os.path.dirname(ncu)}:{os.environ['PATH']}"
-    log = _run([sys.executable, "-m", "bench.collect_counters"])
-    return log, _read(COUNTERS_CSV)
+
+    log = []
+    from bench.profile import profile_kernel, record_counters
+    os.environ["TRITON_F32_DEFAULT"] = precision
+    for module, kernel, variants, batch in COUNTER_GRID:
+        for variant in variants:
+            try:
+                stride, distinct = _launches_per_call(module, kernel, variant,
+                                                      batch, precision)
+                rows = profile_kernel(module, kernel, variant, batch, "float32",
+                                      launch_skip=5 * stride,
+                                      launch_count=stride,
+                                      expected_kernels=distinct)
+                record_counters(rows, COUNTERS_CSV)
+                traffic = {row["metric"]: row["value"] for row in rows
+                           if row["metric"].startswith("dram__")}
+                log.append(f"{kernel}/{variant}@{batch}: {stride} launches/call, "
+                           f"{distinct} distinct, {len(rows)} rows, {traffic}")
+            except Exception as exc:
+                log.append(f"{kernel}/{variant}@{batch}: FAILED "
+                           f"{type(exc).__name__}: {exc}")
+
+    # The per-kernel arms above run first and the whole-model grid is opt-in,
+    # because the per-kernel arms are what prediction 1 actually names: the
+    # [128, 3, 64, 64] intermediate it is about is the attention score matrix
+    # at batch 128. bench/collect_counters.py's vit_forward grid is corroborating
+    # context, and ncu replays every kernel of a full forward pass, so it is by
+    # far the more expensive of the two on a metered GPU.
+    if include_vit:
+        log.append(_run([sys.executable, "-m", "bench.collect_counters"],
+                        _precision_env(precision)))
+    return "\n".join(log), _read(COUNTERS_CSV)
 
 
 def _read(path: str) -> str:
+    """newline="" so the CSV's own line terminators survive the trip home.
+    bench/harness.py writes through csv.DictWriter, which emits CRLF; reading in
+    default text mode would silently translate those to LF and merge_csv would
+    then append LF rows into a CRLF file."""
     if not os.path.exists(path):
         return ""
-    with open(path) as handle:
+    with open(path, newline="") as handle:
         return handle.read()
 
 
@@ -557,40 +774,47 @@ if modal is not None:
         return _echo(smoke_body())
 
     @app.function(image=image, gpu="L4", timeout=2400)
-    def tests() -> str:
-        return _echo(tests_body())
+    def tests(precision: str = "ieee") -> str:
+        return _echo(tests_body(precision))
 
     @app.function(image=ncu_image, gpu="L4", timeout=900)
     def probe_counters() -> str:
         return _echo(counters_body())
 
-    @app.function(image=ncu_image, gpu="L4", timeout=2400)
-    def counter_grid() -> tuple[str, str]:
-        log, csv_text = counter_grid_body()
+    @app.function(image=ncu_image, gpu="L4", timeout=2700)
+    def counter_grid(precision: str = "ieee",
+                     include_vit: bool = False) -> tuple[str, str]:
+        log, csv_text = counter_grid_body(precision, include_vit)
         return _echo(log), csv_text
 
     @app.function(image=image, gpu="L4", timeout=1800)
     def predictions() -> str:
-        sections = [("device", _describe_device),
-                    ("prediction2_registers", registers_body),
-                    ("prediction4_monolithic", monolithic_body),
-                    ("prediction3_tf32", tf32_body),
-                    ("sdpa_backend", sdpa_body)]
-        out = []
-        for name, body in sections:
-            try:
-                out.append(f"===== {name}\n{body()}")
-            except Exception as exc:
-                out.append(f"===== {name}\nFAILED {type(exc).__name__}: {exc}")
+        """Every precision-sensitive body is run twice, once per Triton fp32
+        precision, in its own subprocess. Prediction 3's pre-registered premise
+        was that cuBLAS gets tensor cores and our `tl.dot` does not; on Ada that
+        is testable rather than assumed, so both settings are measured and
+        reported separately."""
+        out = [f"===== device\n{_describe_device()}"]
+        for precision in ("ieee", "tf32"):
+            for body in ("registers", "precision_check", "tf32", "sdpa"):
+                out.append(f"===== {body} [TRITON_F32_DEFAULT={precision}]\n"
+                           + _body_in_subprocess(body, precision))
+        out.append("===== prediction4_monolithic\n" + monolithic_body())
         return _echo("\n\n".join(out))
 
-    @app.function(image=image, gpu="L4", timeout=3600)
-    def sweep() -> tuple[str, str]:
-        log, csv_text = sweep_body()
+    @app.function(image=image, gpu="L4", timeout=2400)
+    def sweep_kernels(precision: str = "ieee") -> tuple[str, str]:
+        log, csv_text = sweep_body(precision, SWEEP_KERNEL_MODULES)
+        return _echo(log), csv_text
+
+    @app.function(image=image, gpu="L4", timeout=2400)
+    def sweep_vit(precision: str = "ieee") -> tuple[str, str]:
+        log, csv_text = sweep_body(precision, SWEEP_VIT_MODULES)
         return _echo(log), csv_text
 
     @app.local_entrypoint()
-    def run(step: str, out_dir: str) -> None:
+    def run(step: str, out_dir: str, precision: str = "ieee",
+            include_vit: bool = False) -> None:
         """One step per invocation, results written to out_dir.
 
         `modal run` discards a function's return value, so the CSVs a sweep
@@ -602,10 +826,16 @@ if modal is not None:
         steps = {"build_check": build_check, "build_check_ncu": build_check_ncu,
                  "smoke": smoke, "tests": tests,
                  "probe_counters": probe_counters, "predictions": predictions,
-                 "sweep": sweep, "counter_grid": counter_grid}
+                 "sweep_kernels": sweep_kernels, "sweep_vit": sweep_vit,
+                 "counter_grid": counter_grid}
+        takes_precision = {"tests", "sweep_kernels", "sweep_vit",
+                           "counter_grid"}
         os.makedirs(out_dir, exist_ok=True)
         started = time.monotonic()
-        result = steps[step].remote()
+        result = (steps[step].remote(precision, include_vit)
+                  if step == "counter_grid" else
+                  steps[step].remote(precision) if step in takes_precision
+                  else steps[step].remote())
         elapsed = time.monotonic() - started
         log, csv_text = result if isinstance(result, tuple) else (result, None)
         with open(os.path.join(out_dir, f"{step}.log"), "w") as handle:
@@ -633,23 +863,37 @@ def merge_csv(remote_text: str, path: str) -> str:
     unreadable against the new ones, which is a worse outcome than this
     function refusing to merge.
     """
-    remote_lines = remote_text.strip().splitlines()
+    remote_lines = [line for line in remote_text.splitlines() if line.strip()]
     if not remote_lines:
         return f"{path}: nothing returned, nothing merged"
-    with open(path) as handle:
-        local_lines = handle.read().splitlines()
-    if remote_lines[0] != local_lines[0]:
+    with open(path, newline="") as handle:
+        local_text = handle.read()
+    local_lines = [line for line in local_text.splitlines() if line.strip()]
+
+    # The existing files are CRLF-terminated (csv.DictWriter's default), so the
+    # appended rows must be too -- a merge that mixes terminators is a silent
+    # schema drift of exactly the kind this function exists to prevent.
+    terminator = "\r\n" if local_text.split("\n", 1)[0].endswith("\r") else "\n"
+    strip = lambda line: line.rstrip("\r")
+
+    if strip(remote_lines[0]) != strip(local_lines[0]):
         raise SystemExit(f"{path}: header mismatch, refusing to merge\n"
-                         f"  local:  {local_lines[0]}\n"
-                         f"  remote: {remote_lines[0]}")
-    expected = len(local_lines[0].split(","))
-    rows = remote_lines[1:]
-    bad = [row for row in rows if len(row.split(",")) != expected]
+                         f"  local:  {strip(local_lines[0])}\n"
+                         f"  remote: {strip(remote_lines[0])}")
+    # Fields are counted with csv.reader, not str.split(","): kernel_name holds
+    # C++ template signatures full of commas inside quotes, so splitting on the
+    # raw comma miscounts every such row.
+    count_fields = lambda line: len(next(csv.reader([line])))
+    expected = count_fields(strip(local_lines[0]))
+    rows = [strip(line) for line in remote_lines[1:]]
+    bad = [row for row in rows if count_fields(row) != expected]
     if bad:
         raise SystemExit(f"{path}: {len(bad)} row(s) have the wrong field "
                          f"count; first: {bad[0]}")
-    with open(path, "a") as handle:
-        handle.write("\n".join(rows) + "\n")
+    if not local_text.endswith(("\n", "\r")):
+        rows.insert(0, "")
+    with open(path, "a", newline="") as handle:
+        handle.write(terminator.join(rows) + terminator)
     return (f"{path}: {len(local_lines)} lines -> "
             f"{len(local_lines) + len(rows)} lines ({len(rows)} appended)")
 
@@ -661,7 +905,8 @@ def _local_main() -> None:
                     "returned by an L4 run into bench/results/.")
     parser.add_argument("body", choices=["device", "smoke", "registers",
                                          "tf32", "sdpa", "monolithic",
-                                         "counters", "merge"])
+                                         "counters", "precision_check",
+                                         "merge"])
     parser.add_argument("--csv", help="file holding the returned CSV text")
     parser.add_argument("--into", default=LATENCY_CSV)
     args = parser.parse_args()
@@ -672,7 +917,8 @@ def _local_main() -> None:
     bodies = {"device": _describe_device, "smoke": smoke_body,
               "registers": registers_body, "tf32": tf32_body,
               "sdpa": sdpa_body, "monolithic": monolithic_body,
-              "counters": counters_body}
+              "counters": counters_body,
+              "precision_check": precision_check_body}
     print(bodies[args.body]())
 
 
