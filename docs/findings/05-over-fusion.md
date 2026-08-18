@@ -199,6 +199,27 @@ own grid at batch 1 is 4 blocks (`cdiv(64, 16)`) -- also tiny, but its
 register ceiling was already exactly 1 block/SM, so grid-limiting and
 register-limiting coincide and its occupancy stays flat.
 
+> **Correction (Experiment 4, 2026-08-18), superseded by
+> `docs/findings/10-register-rule.md`:** the "register-limited at every
+> batch" claim above was tested directly by Experiment 1 and found to be
+> a coincidence, not a mechanism. Cutting `BLOCK_M` 16 -> 2 dropped
+> `_mlp_fused_kernel` to 128 regs/thread, where this same arithmetic
+> predicts 65,536 / (128 x 256) = 2 blocks/SM -> 50% occupancy -- and
+> the measured occupancy stayed pinned at 25.00%. Registers were never
+> the binding constraint here; at 226 regs/thread the register ceiling
+> and the real (shared-memory-set) ceiling both happen to land on 1
+> block/SM, which is why the arithmetic below appeared to explain the
+> result. The occupancy-arithmetic *method* is not in question -- it
+> matched measurement exactly at 128, 168, and 226 regs, and correctly
+> identifies shared memory (not registers) as binding for
+> `_flash_kernel` in `04-flash-attention.md`. What was wrong was
+> concluding registers were *binding* for this kernel specifically. The
+> numbers above are unchanged and accurate as a description of what was
+> measured; only the causal claim is corrected. See Experiment 1's full
+> writeup and Experiment 1b's follow-on (shared memory bounds occupancy
+> here too, but the real cost is the H-loop's serial reduction) in
+> `10-register-rule.md`.
+
 ### `l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum` / `..._st.sum`
 
 Caveat, so these counters aren't overstated anywhere in this document:
@@ -486,12 +507,32 @@ where it is only one of several launches.
 **Shared memory bounds fusion first, at compile time; registers collapse
 occupancy second, but fusion is already dead before registers spill.**
 
+> **Correction (Experiment 4, 2026-08-18):** Experiments 1 and 1b in
+> `docs/findings/10-register-rule.md` tested this headline directly by
+> varying `BLOCK_M` and `BLOCK_H` independently and found it incomplete:
+> cutting registers 226 -> 128 did not restore occupancy (still 25.00%),
+> and halving the shared-memory tile (`BLOCK_H` 32 -> 16) also left
+> occupancy flat at 25.00% while making the fusion *worse* (6.05x vs
+> composed, against this document's 3.80x-3.83x). The surviving
+> mechanism: fusing the MLP forces a serial accumulation over the hidden
+> dimension that two independent GEMMs do not have; shared memory sets
+> the *compile-time feasibility* bound (why the monolithic kernel will
+> not build, why `BLOCK_H` cannot exceed 32) but is not what makes the
+> compiled kernel slow. Reconciled one-sentence headline: **Shared memory
+> sets the compile-time feasibility bound, but the mega-MLP's actual
+> latency loss comes from the H-loop's unpipelined serial reduction, not
+> from register or occupancy collapse.**
+
 Supporting evidence, each claim numbered and sourced:
 
 - `layernorm_residual`: **+22-31% faster** than the unfused pair
   (`docs/findings/02-layernorm-fusion.md`).
 - `linear_gelu`: **+9-11% faster** than the unfused pair
-  (`docs/findings/03-epilogue-fusion.md`).
+  (`docs/findings/03-epilogue-fusion.md`). **Superseded for the tuned
+  case** by `docs/findings/07-retuning.md`, which found this reverses
+  under autotuning (composed beats fused by 4.7-13.8%, growing with
+  batch) — this document's naive-kernel number is unchanged and correct
+  for the naive kernels it describes.
 - `triton_qkv_fused` wins only at batch 1 (0.0548ms vs 0.0868ms for
   `triton_qkv_unfused`), then is a wash or a loss at every larger batch
   (13.1648ms vs 13.1332ms at batch 512) (`04-flash-attention.md`).
@@ -509,7 +550,10 @@ Supporting evidence, each claim numbered and sourced:
 - Registers collapse occupancy second, and this is the *measured* cause
   of the mega-MLP's latency loss: 226 regs/thread x 256 threads/block =
   57,856 -> 1 block/SM -> 25.00% occupancy, register-limited at every
-  batch (above).
+  batch (above). **Superseded** — Experiment 1 (`10-register-rule.md`)
+  showed this occupancy figure is real but not causal: cutting registers
+  to 128 predicts 50% occupancy and measures 25.00% anyway, so registers
+  were not actually what collapsed occupancy here.
 - The chain "shared memory forces `BLOCK_H=32` -> tiles too small to
   amortize the fusion" is inferred from the compile-time arithmetic
   above, not isolated by any experiment that varies tile size

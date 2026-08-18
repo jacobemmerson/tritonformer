@@ -69,7 +69,12 @@ and `temp_c` keep their names and column position but now mean *minimum clock* /
 *maximum temperature observed during that arm's reps*, not a single point sample taken
 after the fact. This is documented on `Measurement`'s docstring in `bench/harness.py`.
 **Anyone comparing a row from before this task to a row from after it is comparing two
-different measurement definitions under the same column names.**
+different measurement definitions under the same column names.** `docs/findings/10-register-rule.md`'s
+Experiments 1/1b/2 run under this same post-fix regime (locked-clock target,
+in-loop NVML sampling, `sm_clock_mhz`/`temp_c` as min/max-observed) — rows
+from those experiments are directly comparable to this document's, but not
+to any row from the merged study (`docs/findings/00-06`) predating commit
+`64b401c`.
 
 ## The thermal story
 
