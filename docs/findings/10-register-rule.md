@@ -343,3 +343,146 @@ though the shared-memory arithmetic alone would allow 8 blocks/SM.)
   `BLOCK_H`; latency via `bench/run_mlp.py`'s sweep machinery.
   `TRITONFORMER_LOCKED_CLOCK_MHZ=1300` exported for every measurement. Flagged counts
   reported per the live `flagged` signal.
+
+## Results (1b)
+
+**A compile-time floor was hit before the planned sweep could run.** `BLOCK_H` in
+{8, 4} was planned, but neither compiles: `_mlp_fused_kernel`'s second `tl.dot`
+(`hidden[BLOCK_M, BLOCK_H] @ w2[BLOCK_H, BLOCK_D]`) reduces over `BLOCK_H`, and Triton
+3.6's `tl.dot` requires the reduction dimension to be >= 16
+(`CompilationError: Input shapes should have M >= 1, N >= 1 and K >= 16`), confirmed by
+direct compilation attempts at both values. `BLOCK_H=16` is therefore the *only* value
+below the committed 32 that compiles at all. The registered `mlp_fused_blockh` uses
+`BLOCK_H=16`; the planned three-point curve is a two-point curve by hardware/library
+constraint, not by choice.
+
+### Compiled-kernel metadata (Triton, cheap, no ncu)
+
+| BLOCK_M | BLOCK_H | num_warps | num_stages | regs/thread | spills | shared bytes |
+|---:|---:|---:|---:|---:|---:|---:|
+| 16 | 32 (`mlp_fused`, committed) | 8 | 1/2/3 | 226 | 0 | 51,200 |
+| 16 | 16 (`mlp_fused_blockh`, new) | 8 | 1/2/3 | **128** | 0 | **33,792** |
+| 16 | 8  | 8 | 1/2/3 | — | — | — (COMPILE FAILS, K>=16 floor) |
+| 16 | 4  | 8 | 1/2/3 | — | — | — (COMPILE FAILS, K>=16 floor) |
+
+`num_stages` has **zero effect** on any compiled-metadata field at `BLOCK_H=16`, exactly
+reproducing Experiment 1's finding: the H-loop is a compile-time-unrolled Python `for`,
+not a `tl.range`-pipelined construct, so there is no loop for `num_stages` to
+double-buffer. Confirmed independently by direct latency measurement at `BLOCK_H=16`,
+batch 128 (30-rep median, 5-rep warmup, locked 1300 MHz): `num_stages=1` -> 52.1837 ms,
+`num_stages=2` -> 52.1852 ms, `num_stages=3` -> 52.1848 ms — a 0.003% spread, i.e. noise,
+not a pipelining effect.
+
+**Shared memory at `BLOCK_H=16` (33,792 B) still exceeds half the 64 KB/SM budget**
+(2 x 33,792 = 67,584 > 65,536), so even the reduced tile does not admit a second
+resident block on the naive floor-division arithmetic Experiment 1 validated. This
+already predicts occupancy stays at 25.00% rather than rising to 50% as the pre-registered
+table assumed (that table used the idealized `BLOCK_D x BLOCK_H x 4B x 2` = 32,768 B,
+not accounting for the ~1,024 B/tile of padding/alignment overhead Triton's compiler adds
+that the measured 33,792 B reveals).
+
+### ncu-verified counters (batch 128, `launch_skip=15`, `expected_kernels` declared)
+
+| variant | kernel | regs/thread | occupancy (ncu) | DRAM read | DRAM write | DRAM total | vs. composed |
+|---|---|---:|---:|---:|---:|---:|---:|
+| `triton_composed` | `_linear_gelu_kernel` + `_linear_kernel` | 168 / 128 | 37.18% / 47.83% | 76.8M + 80.2M | 25.0M + 6.3M | **188.3 MB** | — |
+| `triton_fused` (`mlp_fused`, `BLOCK_H=32`, committed) | `_mlp_fused_kernel` | 226 | **25.00%** | 44.4M | 6.6M | **51.0 MB** | **-72.9%** |
+| `triton_fused_blockh` (`mlp_fused_blockh`, `BLOCK_H=16`, new) | `_mlp_fused_kernel` | **128** | **25.00%** | 44.6M | 6.5M | **51.1 MB** | **-72.9%** |
+
+Two independent ncu launches were captured per variant (steady-state, past warmup); both
+landed on 25.00% occupancy and the same shared/regs metadata, ruling out a one-off
+sampling artifact.
+
+### Latency (ms, median of interleaved reps, `bench/harness.compare()`, `bench/run_mlp.py`
+official sweep, written to `latency.csv`)
+
+| batch | triton_composed | triton_fused (`BLOCK_H=32`) | triton_fused_blockh (`BLOCK_H=16`) | fused/composed | blockh/composed |
+|---:|---:|---:|---:|---:|---:|
+| 1   | 0.1757 | 0.5529  | 0.8686  | 3.15x | 4.94x |
+| 8   | 0.5679 | 2.0583  | 3.2702  | 3.62x | 5.76x |
+| 32  | 2.1770 | 8.2125  | 13.0601 | 3.77x | 6.00x |
+| 128 | 8.6534 | 32.8346 | 52.2351 | 3.79x | 6.04x |
+| 512 | 34.5503| 131.2155| 208.9033| 3.80x | 6.05x |
+
+**`mlp_fused_blockh` is *worse* than `mlp_fused`, not better** — the fused/composed ratio
+gets worse (3.8x -> 6.0x), not closer to 1.0x, despite occupancy being bit-for-bit
+identical between the two (25.00% both, ncu-confirmed) and the DRAM traffic saving being
+fully retained (-72.9% both). The H-loop iteration count doubled (24 -> 48, `BLOCK_M=16`
+unchanged so the grid did not multiply) and the blockh/composed ratio grew by
+~1.59x-1.60x across every batch size — consistent with the loop-iteration-count
+hypothesis, not with an occupancy or traffic mechanism, since neither of those changed at
+all between the two configurations.
+
+### Flagged counts
+
+25 latency rows collected for this sub-experiment (the official 5-batch x 5-arm sweep,
+`torch`/`triton_composed`/`triton_fused`/`triton_fused_lowreg`/`triton_fused_blockh`).
+**2/25 flagged**: `torch` and `triton_composed` at batch=512 (min clocks 675 MHz and
+1065 MHz respectively, both correlated with the longest-running arms at the largest
+batch — the same thermal-drift pattern `07-retuning.md` documented for heavy sweeps).
+All `triton_fused`/`triton_fused_lowreg`/`triton_fused_blockh` rows, including at
+batch=512, stayed unflagged at 1305 MHz, 84 C. Neither flagged row involves the new
+variant, so the flip-test result itself is measured under a clean, unthrottled clock at
+every point.
+
+## Verdict on Q1-Q4
+
+- **Q1 (occupancy rises as `BLOCK_H` falls): FAILS.** Occupancy is bit-for-bit identical
+  at 25.00% (ncu-confirmed) at `BLOCK_H=16` and `BLOCK_H=32`. The pre-registered
+  50%-at-16 prediction used idealized shared-memory arithmetic that undercounted actual
+  compiler overhead (33,792 measured vs. 32,768 idealized) — a difference small enough to
+  look negligible but large enough to keep the tile just over half the 64 KB budget, so
+  only 1 block/SM ever fits at either `BLOCK_H` tried. `BLOCK_H=8`/`4`, which the
+  idealized arithmetic predicted would reach 100% occupancy, do not compile at all
+  (`tl.dot` K>=16 floor), so that part of the table was never reachable regardless.
+- **Q2 (DRAM traffic saving holds near -73% with `BLOCK_M` fixed): HOLDS, precisely.**
+  -72.9% at both `BLOCK_H=32` and `BLOCK_H=16`, confirming the confound Experiment 1
+  introduced (`BLOCK_M` cuts multiplying the grid) was correctly isolated by holding
+  `BLOCK_M=16` fixed here.
+- **Q3 (there is a `BLOCK_H` at which fused beats composed): FAILS**, and not merely by
+  falling short — the only reachable `BLOCK_H` below 32 makes the fusion **worse**
+  (3.8x -> 6.0x loss vs. composed), moving further from the flip, not closer.
+- **Q4 (if occupancy and traffic both hold steady but it still doesn't flip, the H-loop's
+  serialisation is the real cost): HOLDS, and is the result of this sub-experiment.**
+  Occupancy did not move (Q1 failed to rise — flat, not "rose partially"), the traffic
+  saving was fully retained (Q2 held), and the fusion still lost, worse than before. The
+  only variable that changed between `mlp_fused` and `mlp_fused_blockh` is H-loop
+  iteration count (24 -> 48, unrolled at compile time, no `num_stages` pipelining
+  possible or effective — confirmed both by identical compiled metadata and by a direct
+  0.003%-spread latency check across `num_stages` in {1, 2, 3}). The latency ratio grew
+  by ~1.6x, in the same direction and rough proportion as the iteration-count doubling.
+
+## The flip does not happen; the register rule's occupancy mechanism is not the whole
+## story for this kernel
+
+**`mlp_fused` never flips, at any reachable `BLOCK_H`, either register/occupancy lever
+this project has tried (Experiment 1's `BLOCK_M`, this experiment's `BLOCK_H`).** The
+project's shared-memory headline ("shared memory bounds fusion first, at compile time;
+registers collapse occupancy second") is **incomplete in the same direction the register
+rule was**: shared memory does bound this kernel's occupancy — correctly identified in
+Experiment 1 — but pushing the shared-memory tile smaller does not free occupancy either,
+both because the achievable step (`BLOCK_H=16`) still exceeds half the budget, and
+because the compiler's own minimum-reduction-size floor for `tl.dot` (K>=16) closes off
+the `BLOCK_H` values that would have. More importantly, even holding occupancy and DRAM
+traffic both provably constant (this experiment's clean isolation, unlike Experiment 1's
+confounded one), reducing `BLOCK_H` made the kernel slower, not faster, tracking the
+H-loop's iteration count. **The real binding cost for `_mlp_fused_kernel` is not
+registers, not occupancy, and not shared memory in the abstract — it is the loop-carried
+dependency depth of the unrolled H-loop, which no lever tried across Experiments 1 and 1b
+touches, and which Triton's Python-`for`-loop compilation model on this kernel gives no
+way to pipeline.** A corrected version of the rule needs to add: *and the mechanism
+"fusion pays without spending registers" implicitly assumes occupancy is the only cost of
+under-fusing a reduction into a single kernel body — for a fusion whose reduction is
+executed as a compile-time-unrolled loop rather than a hardware-parallel or
+software-pipelined one, loop depth is an independent, unaccounted-for cost that no
+register or shared-memory tuning removes.*
+
+## Correctness and test summary (1b)
+
+`tests/test_mlp.py`: 19 passed (up from 14), including the new
+`test_fused_blockh_matches_composed_exactly_enough` at the same `rtol=atol=1e-5` used for
+the other exact-match tests. Full suite: **153 passed** (148 pre-existing + 5 new: 4
+`VARIANTS` parametrizations x 1 new variant across two tests, plus the new exact-match
+test). No tolerance was loosened anywhere. `git diff --numstat model/kernels/mlp.py`
+shows 48 insertions, 0 deletions — `_mlp_fused_kernel`, `mlp_fused`, and
+`mlp_fused_lowreg` were not touched.
