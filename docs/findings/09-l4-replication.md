@@ -47,26 +47,49 @@ matters.
 
 ## Pre-registered predictions
 
-1. **The rule's premise may collapse.** A `[128,3,64,64]` fp32 intermediate is 12.6 MB and
-   fits in 48 MB of L2, so the unfused arm may never reach DRAM. If so, **even
-   register-free fusion stops paying** — which would make `layernorm_residual`'s 22-25%
-   win an artifact of a small-L2 card. Testable: `dram__bytes_read.sum` for composed arms
-   should collapse.
+1. **The rule's premise may collapse.** A `[128,3,64,64]` fp32 intermediate is 6.29 MB
+   (`128 x 3 x 64 x 64 x 4 = 6,291,456 B`; **corrected from an earlier draft's 12.6 MB
+   before any L4 measurement was taken** — the original figure appears to have costed a
+   write+read round trip rather than the tensor's own size, an error traced to the
+   pre-registration's source plan) and fits in 48 MB of L2, so the unfused arm may never
+   reach DRAM. If so, **even register-free fusion stops paying** — which would make
+   `layernorm_residual`'s 22-25% win an artifact of a small-L2 card. Testable:
+   `dram__bytes_read.sum` for composed arms should collapse. The correction does not
+   change the prediction's direction: 6.29 MB fits inside 48 MB of L2 even more
+   comfortably than 12.6 MB did, so if anything the prediction is strengthened, not
+   weakened, by the fix.
 2. **Register arithmetic transfers unchanged.** Same 65,536 regs/SM, so `mlp_fused` at
    226 regs x 256 threads -> 1 block/SM -> 25% should reproduce exactly.
 3. **The matmul comparison needs controlling.** cuBLAS gets tensor cores; our fp32
    `tl.dot` does not. Report strict-fp32 AND TF32-enabled numbers, or the comparison
    measures precision policy rather than kernel quality.
-4. **The monolithic block kernel still fails to compile.** It needs 262,144 B, Ada allows
+4. **The monolithic block kernel still fails to compile.** It needs 262,144 B; Ada allows
    ~99 KB/block. The bound moves, it does not disappear.
 
-Note on prediction 2's relevance: because Experiment 1 already showed occupancy is *not*
-the mechanism behind `mlp_fused`'s loss on sm_75, prediction 2 reproducing exactly on the
-L4 would confirm that Triton's register-arithmetic model transfers across architectures
-(same register file size, same compiled kernel, same occupancy formula) — it would not,
-by itself, say anything about whether the L4 reproduces the loss, or whether the loss
-still traces to H-loop serialisation there. Those are separate questions this experiment
-does not pre-register predictions for.
+### Occupancy denominator differs between the two cards — read before scoring prediction 2
+
+| | sm_75 (Turing) | sm_89 (Ada) |
+|---|---|---|
+| max resident warps / SM | 32 | 48 |
+| max resident threads / SM | 1,024 | 1,536 |
+| 32-bit registers / SM | 65,536 | 65,536 (unchanged) |
+
+`mlp_fused` at 226 regs/thread x 256 threads/block = 57,856 regs/block; `65,536 //
+57,856 = 1` block/SM on **both** cards — the register-file arithmetic that decides block
+count genuinely transfers, because it depends only on the register file size, which is
+unchanged. But the occupancy *percentage* does not, because it divides by max resident
+warps/SM, which differs: `1 block x 8 warps / 32 = 25.00%` on sm_75, versus `1 block x 8
+warps / 48 = 16.67%` on sm_89. The same register-driven *block-count* math applies across
+both cards; the occupancy *percentage* denominator does not.
+
+Prediction 2 is kept **verbatim** above and will be scored as literally written — "25%
+should reproduce exactly" is expected to read FALSE on the L4, landing at 16.67% instead.
+Scoring it must separate two distinct claims bundled in that one sentence: (a) **"1
+block/SM transferred"** — the substantive claim about the register file, expected to
+hold — from (b) **"the occupancy percentage matched 25%"** — a denominator-dependent
+figure expected to read ~16.67% instead. A pre-registered alternative (16.67%) is named
+here so the eventual result lands on a number that was predicted in advance, not a
+post-hoc explanation invented after seeing the measurement.
 
 ## Pre-registered expectation (not a fifth prediction, not scored)
 
