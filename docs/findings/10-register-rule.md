@@ -257,3 +257,89 @@ correctly not flagged) — well short of the 84 C/300 MHz thermal cliff document
 `07-retuning.md`. This experiment's short per-call kernels (sub-second even at the
 slowest config) apparently did not sustain load long enough to trigger the throttle this
 card is prone to under `linear`/`linear_gelu`'s longer sweeps.
+
+## Experiment 1b: the real flip test — pre-registered predictions
+
+Written and committed **before any measurement in this sub-experiment is taken**.
+Experiment 1 above found that occupancy was pinned at 25.00% for `_mlp_fused_kernel`
+at every `BLOCK_M` tried, because shared memory — not registers — set the blocks/SM
+ceiling: `w1`/`w2` tiles at `BLOCK_D=256, BLOCK_H=32` cost 65,536 B, exactly the 64 KB/SM
+budget, and that figure is `BLOCK_M`-independent. Cutting `BLOCK_M` also multiplied the
+grid, which multiplied redundant `w1`/`w2` re-reads and inverted the fusion's DRAM
+saving from -73% to +92.9% — a confound Experiment 1 did not intend and that alone could
+explain why it never flipped, independent of occupancy.
+
+This sub-experiment holds `BLOCK_M=16` fixed (the committed `mlp_fused` value) so the
+grid size, and therefore the DRAM traffic comparison, stays comparable to `mlp_fused`,
+and instead sweeps `BLOCK_H` — the lever that actually sets the shared-memory tile size:
+
+```
+BLOCK_H = 32 (current):  65,536 B -> 1 blk/SM ->  25% occupancy |  24 H-loop iterations
+BLOCK_H = 16          :  32,768 B -> 2 blk/SM ->  50% occupancy |  48 H-loop iterations
+BLOCK_H =  8          :  16,384 B -> 4 blk/SM -> 100% occupancy |  96 H-loop iterations
+BLOCK_H =  4          :   8,192 B -> 8 blk/SM -> (warp-capped)  | 192 H-loop iterations
+```
+(sm_75 caps at 32 warps/SM; at `num_warps=8` that is 4 blocks/SM, so 100% is the ceiling
+`BLOCK_H=8` should already reach, and `BLOCK_H=4` cannot exceed it by the warp count even
+though the shared-memory arithmetic alone would allow 8 blocks/SM.)
+
+### Pre-registered predictions
+
+- **Q1.** Occupancy rises as `BLOCK_H` falls, tracking the table above: ~50% at
+  `BLOCK_H=16`, ~100% at `BLOCK_H=8` (warp-capped, not shared-memory-capped at that
+  point).
+- **Q2.** DRAM traffic stays close to `mlp_fused`'s -73% vs. `mlp_composed`, because
+  `BLOCK_M=16` is unchanged and the grid does not multiply — this is the confound
+  Experiment 1's `BLOCK_M` cuts destroyed, held fixed here on purpose.
+- **Q3.** There exists a `BLOCK_H` at which the fused MLP's latency beats `mlp_composed`
+  — the flip Experiment 1 was looking for and did not find.
+- **Q4.** If occupancy rises substantially (Q1 holds) AND the traffic saving is retained
+  (Q2 holds) but the fusion still never beats composed (Q3 fails), then neither registers
+  nor occupancy is the binding constraint on this kernel at all, and the real cost is the
+  H-loop's own serialisation: `_mlp_fused_kernel`'s H-loop is a compile-time-unrolled
+  Python `for`, not a `tl.range`-pipelined loop (Experiment 1 already confirmed
+  `num_stages` has zero effect on `n_regs`/`n_spills`/`shared` for that reason). Smaller
+  `BLOCK_H` trades occupancy for more sequential, loop-carried iterations (24 -> 48 -> 96
+  -> 192) with no software pipelining to overlap them. This is tested directly by also
+  sweeping `num_stages` in {1, 2, 3} at the best `BLOCK_H`: if pipelining helps once the
+  loop has enough iterations to pipeline, latency should improve with `num_stages`; if it
+  still does nothing, the loop-unrolling structure itself — not merely its length — is
+  the obstacle.
+
+### What each prediction refutes if it fails
+
+- If **Q1 fails** (occupancy does not track the shared-memory table), shared memory is
+  not the binding occupancy constraint either, contradicting both Experiment 1's finding
+  and the project's headline claim that shared memory bounds fusion first.
+- If **Q2 fails** (traffic saving erodes even with `BLOCK_M` fixed), the -73% figure is
+  not `BLOCK_H`-independent either, and the traffic accounting needs revisiting beyond
+  the `BLOCK_M`-tied redundant-read mechanism Experiment 1 already identified.
+- If **Q3 holds**, the register rule's mechanism (occupancy, once uncoupled from the
+  DRAM-traffic confound) is vindicated for this kernel, and Experiment 1's failure to
+  flip is explained as an artifact of sweeping the wrong knob (`BLOCK_M` instead of
+  `BLOCK_H`).
+- If **Q3 fails despite Q1 and Q2 holding, Q4 is the result**: the project's
+  shared-memory headline is incomplete in the same way the register rule was —
+  occupancy is necessary but not sufficient, and the real limiter is loop-carried
+  dependency depth in the H-loop, unrelated to any resource-occupancy accounting. This is
+  the interesting branch and will be reported plainly, not softened, if it is what the
+  data shows.
+
+### Method
+
+- New variant `mlp_fused_blockh` in `model/kernels/mlp.py`, append-only.
+  `_mlp_fused_kernel`, `mlp_fused`, and `mlp_fused_lowreg` are not modified — `git diff
+  --numstat model/kernels/mlp.py` must show 0 deletions for this sub-experiment.
+- Sweep `BLOCK_H` in {16, 8, 4} at `BLOCK_M=16` (fixed), then `num_stages` in {1, 2, 3} at
+  whichever `BLOCK_H` from that sweep gives the best latency.
+- GeLU constants (`0.7978845608028654`, `0.044715`), `libdevice.tanh`, the fp32
+  accumulator, and bias handling (`b1` indexed per H-chunk inside the loop, `b2` added
+  once outside it) are preserved exactly from `_mlp_fused_kernel`.
+- Correctness: `tests/test_mlp.py`, unchanged `TOLERANCES["mlp"]`, including a new
+  exact-match test against `mlp_composed` at `rtol=atol=1e-5`, matching the existing
+  `test_fused_matches_composed_exactly_enough` / `test_fused_lowreg_matches_composed_exactly_enough`
+  pattern. No tolerance is loosened.
+- Counters via `bench/collect_counters.py` / `bench/profile.py::profile_kernel` per
+  `BLOCK_H`; latency via `bench/run_mlp.py`'s sweep machinery.
+  `TRITONFORMER_LOCKED_CLOCK_MHZ=1300` exported for every measurement. Flagged counts
+  reported per the live `flagged` signal.
