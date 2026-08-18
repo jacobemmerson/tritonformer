@@ -5,6 +5,20 @@ so its reported durations are inflated and meaningless as performance
 numbers. Latency lives in bench/harness.py and a separate CSV; nothing
 here produces a timing.
 
+By default ncu fixes the GPU's clocks for the duration of a capture, so that
+counters gathered across its replay passes describe one consistent operating
+point. A host that forbids clock control fails the whole capture with
+"Failed to lock GPU clock frequencies!" -- observed on Modal's shared L4, where
+counter *permission* was granted but clock control was not. Setting
+TRITONFORMER_NCU_CLOCK_CONTROL=none passes `--clock-control none`, which lets
+such a host produce counters at whatever frequency it happens to run.
+
+Unset means unchanged behaviour, which is what every measurement before this
+was taken with, and unset is the right choice wherever clock control works: the
+waiver is not free. Counts of bytes, sectors, and warps are frequency-invariant
+and stay comparable; anything rate- or duration-shaped (and any comparison
+against a locked-clock run) is not. Rows gathered under the waiver must say so.
+
 Setup, once, on the profiling host:
     echo 'options nvidia NVreg_RestrictProfilingToAdminUsers=0' \\
         | sudo tee /etc/modprobe.d/nvidia-profiling.conf
@@ -68,8 +82,10 @@ def profile_kernel(module: str, kernel: str, variant: str, batch: int,
     it doesn't require the caller to predict ncu's kernel-name mangling
     (e.g. torch's templated elementwise kernel names).
     """
+    clock_control = os.environ.get("TRITONFORMER_NCU_CLOCK_CONTROL")
     command = [
         "ncu", "--csv", "--target-processes", "all",
+        *(["--clock-control", clock_control] if clock_control else []),
         "--launch-skip", str(launch_skip),
         "--launch-count", str(launch_count),
         "--metrics", ",".join(METRICS),
