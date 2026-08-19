@@ -102,11 +102,22 @@ def _describe_device() -> str:
     ])
 
 
-def _run(command: list[str], env: dict[str, str] | None = None) -> str:
+def _run(command: list[str], env: dict[str, str] | None = None,
+         stream: bool = False) -> str:
     """Never raises. A missing binary is a result to report here (the ncu probe
     exists precisely to find out whether one is usable), not a crash that loses
-    every other line of output the caller had already gathered."""
+    every other line of output the caller had already gathered.
+
+    stream=True sends the child's output to the container's stdout as it is
+    produced instead of capturing it. For a long sweep on a metered GPU that is
+    the difference between knowing which batch sizes have landed and finding out
+    only if the run survives to return.
+    """
     try:
+        if stream:
+            result = subprocess.run(command, text=True, cwd=os.getcwd(),
+                                    env=_env(env))
+            return f"$ {' '.join(command)}\n[exit {result.returncode}]\n"
         result = subprocess.run(command, capture_output=True, text=True,
                                 cwd=os.getcwd(), env=_env(env))
     except OSError as exc:
@@ -572,7 +583,8 @@ def sweep_body(precision: str = "ieee",
     """
     log = []
     for module in (modules or SWEEP_MODULES):
-        log.append(_run([sys.executable, "-m", module], _precision_env(precision)))
+        log.append(_run([sys.executable, "-m", module], _precision_env(precision),
+                        stream=True))
     return "\n".join(log), _read(LATENCY_CSV)
 
 
@@ -807,7 +819,10 @@ if modal is not None:
         log, csv_text = sweep_body(precision, SWEEP_KERNEL_MODULES)
         return _echo(log), csv_text
 
-    @app.function(image=image, gpu="L4", timeout=2400)
+    # Timeout sized to the remaining GPU budget rather than to the work: this
+    # is the last invocation, and overrunning the budget is a worse outcome than
+    # losing the run.
+    @app.function(image=image, gpu="L4", timeout=1200)
     def sweep_vit(precision: str = "ieee") -> tuple[str, str]:
         log, csv_text = sweep_body(precision, SWEEP_VIT_MODULES)
         return _echo(log), csv_text
