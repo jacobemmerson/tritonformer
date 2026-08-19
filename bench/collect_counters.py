@@ -49,7 +49,8 @@ import json
 import subprocess
 import sys
 
-from bench.profile import profile_kernel, record_counters
+from bench.profile import (base_kernel_name, profile_kernel,
+                           record_counters)
 from model.registry import Component, variants
 
 RESULTS_PATH = "bench/results/counters.csv"
@@ -114,10 +115,109 @@ def _capture(variant: str, batch: int, attempts: int = 3) -> list[dict]:
             print(f"  mismatch on attempt {attempt}, remeasuring and retrying: {exc}")
 
 
+
+
+# --- per-kernel arm capture -------------------------------------------------
+#
+# The vit_forward driver above skips one whole steady-state pass, which for a
+# model forward is hundreds of launches and therefore clears the benchmark's own
+# tensor setup by sheer magnitude. A single-kernel arm has a stride of 1, so the
+# same "skip a few strides" reasoning lands *inside* setup: bench/run_mlp.py
+# alone launches five `randn` plus two `* 0.05` elementwise multiplies before the
+# first arm call, and a five-launch skip profiles a scalar multiply while
+# reporting it as the fused kernel. This section therefore measures the setup
+# launches explicitly and skips past them, then validates kernel identity rather
+# than trusting the arithmetic.
+
+ARM_WARMUP_CALLS = 5
+
+_ARM_MEASURE_SCRIPT = """
+import importlib
+import json
+import torch
+from torch.profiler import ProfilerActivity, profile
+
+module = importlib.import_module({module!r})
+specs = module.SPEC if isinstance(module.SPEC, list) else [module.SPEC]
+spec = [s for s in specs if s.kernel == {kernel!r}][0]
+
+# Create the CUDA context first so its one-off launches are attributed to
+# neither the setup count nor the arm's cycle.
+torch.zeros(1, device="cuda")
+torch.cuda.synchronize()
+
+with profile(activities=[ProfilerActivity.CUDA]) as setup_prof:
+    arms = spec.arms_for_batch({batch}, torch.float32)
+    torch.cuda.synchronize()
+setup = len([e for e in setup_prof.events() if e.device_type.name == "CUDA"])
+
+arm = arms[{variant!r}]
+with torch.inference_mode():
+    for _ in range(3):
+        arm()
+    torch.cuda.synchronize()
+    with profile(activities=[ProfilerActivity.CUDA]) as prof:
+        arm()
+        torch.cuda.synchronize()
+
+names = [e.name for e in prof.events() if e.device_type.name == "CUDA"]
+print(json.dumps({{"setup": setup, "stride": len(names),
+                   "distinct": len(set(names)), "names": sorted(set(names))}}))
+"""
+
+
+def measure_arm(module: str, kernel: str, variant: str, batch: int) -> dict:
+    """Setup launches, launches per steady-state call, and the kernel names one
+    call launches -- measured in a fresh subprocess, for the same reason
+    _measure_cycle uses one (see this module's docstring)."""
+    script = _ARM_MEASURE_SCRIPT.format(module=module, kernel=kernel,
+                                        variant=variant, batch=batch)
+    result = subprocess.run([sys.executable, "-c", script],
+                            capture_output=True, text=True, check=True)
+    return json.loads(result.stdout.strip().splitlines()[-1])
+
+
+def capture_arm(module: str, kernel: str, variant: str, batch: int,
+                dtype: str = "float32") -> list[dict]:
+    """Counters for exactly one steady-state call of one per-kernel arm.
+
+    The window is `setup + ARM_WARMUP_CALLS * stride` launches skipped, then
+    exactly `stride` captured: past the benchmark's tensor setup, past enough
+    warm calls to be in steady state, and covering exactly one whole call. A
+    window of exactly one period sums each of the arm's kernels once even if it
+    starts mid-cycle, so the totals are comparable across arms with different
+    launch counts.
+    """
+    measured = measure_arm(module, kernel, variant, batch)
+    skip = measured["setup"] + ARM_WARMUP_CALLS * measured["stride"]
+    print(f"{kernel}/{variant}@{batch}: setup={measured['setup']} launches, "
+          f"stride={measured['stride']}, skip={skip}, "
+          f"expect={sorted(base_kernel_name(n) for n in measured['names'])}")
+    return profile_kernel(module, kernel, variant, batch, dtype,
+                          launch_skip=skip, launch_count=measured["stride"],
+                          expected_kernels=measured["distinct"],
+                          expected_kernel_names=set(measured["names"]))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=RESULTS_PATH)
+    parser.add_argument(
+        "--arm", action="append", default=[], metavar="MODULE:KERNEL:VARIANT:BATCH",
+        help="profile one per-kernel arm instead of the vit_forward grid; "
+             "repeatable, e.g. bench.run_mlp:mlp:triton_fused:128")
     args = parser.parse_args()
+
+    if args.arm:
+        total = 0
+        for spec in args.arm:
+            module, kernel, variant, batch = spec.split(":")
+            captured = capture_arm(module, kernel, variant, int(batch))
+            record_counters(captured, args.out)
+            total += len(captured)
+            print(f"  wrote {len(captured)} rows for {kernel}/{variant}")
+        print(f"wrote {total} rows total to {args.out}")
+        return
 
     total = 0
     for variant in variants(Component.BLOCK):

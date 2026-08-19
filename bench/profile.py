@@ -62,14 +62,41 @@ def parse_ncu_csv(text: str) -> list[dict[str, str]]:
     return []
 
 
+def base_kernel_name(name: str) -> str:
+    """The bare kernel identifier, with return type, namespaces, template
+    arguments and parameter list stripped.
+
+    Exists so a capture can be checked against what torch.profiler predicted:
+    the two spell the same kernel differently (torch says
+    `void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<...>>(...)`,
+    ncu says `void vectorized_elementwise_kernel<4, AUnaryFunctor<...>>(...)`),
+    so only the identifier is comparable.
+    """
+    name = name.split("(")[0].split("<")[0].strip()
+    if name.startswith("void "):
+        name = name[len("void "):]
+    return name.strip().split("::")[-1]
+
+
 def profile_kernel(module: str, kernel: str, variant: str, batch: int,
                    dtype: str, launch_skip: int = 5,
                    launch_count: int = 1,
-                   expected_kernels: int | None = None) -> list[dict]:
+                   expected_kernels: int | None = None,
+                   expected_kernel_names: set[str] | None = None) -> list[dict]:
     """Profile a single steady-state launch.
 
     launch_skip avoids the cold first launch, whose counters reflect
     autotuning and cache-cold behaviour rather than steady state.
+
+    expected_kernel_names checks kernel IDENTITY, and is the check that matters.
+    expected_kernels counts launches, which cannot detect a window that landed
+    on the wrong kernels entirely: a fused arm launching one kernel and a
+    benchmark's own setup `randn`/`* 0.05` elementwise launch both satisfy
+    "exactly 1 distinct kernel". That is not hypothetical -- it is precisely how
+    an earlier L4 counter grid recorded a scalar-multiply setup kernel as if it
+    were `_mlp_fused_kernel`. Pass the base names the arm is expected to launch
+    and a misaimed capture window fails loudly instead of returning plausible
+    numbers for the wrong kernel.
 
     An arm can launch more than one distinct kernel per call (e.g. a
     composed "separate op then op" arm), and ncu's --launch-count only
@@ -107,6 +134,17 @@ def profile_kernel(module: str, kernel: str, variant: str, batch: int,
         "kernel_name": row["Kernel Name"], "metric": row["Metric Name"],
         "unit": row.get("Metric Unit", ""), "value": row["Metric Value"],
     } for row in parse_ncu_csv(result.stdout)]
+
+    if expected_kernel_names is not None:
+        captured = {base_kernel_name(row["kernel_name"]) for row in rows}
+        expected = {base_kernel_name(name) for name in expected_kernel_names}
+        if captured != expected:
+            raise RuntimeError(
+                f"profile_kernel({kernel!r}, {variant!r}) captured the wrong "
+                f"kernel(s). expected {sorted(expected)}, captured "
+                f"{sorted(captured)}. The launch window did not land on the "
+                f"arm under test -- check launch_skip against the benchmark's "
+                f"own setup launches.")
 
     if expected_kernels is not None:
         captured = sorted(set(row["kernel_name"] for row in rows))

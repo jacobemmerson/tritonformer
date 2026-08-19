@@ -41,8 +41,6 @@ TORCH_INDEX = "https://download.pytorch.org/whl/cu128"
 # attention pair is the measurement that scores it. layernorm_residual follows
 # because prediction 1's stated consequence is about that rung's 22-25% win;
 # mlp is the third fusion pair with existing sm_75 rows to compare against.
-# already holds for the GTX 1650 Ti, so prediction 1's composed-vs-fused DRAM
-# comparison is like-for-like across the two cards.
 COUNTER_GRID = [
     ("bench.run_attention", "attention",
      ["triton_composed", "triton_flash"], 128),
@@ -314,7 +312,7 @@ def tf32_body(batch: int = 128) -> str:
                 f"{name}={ms:.4f}ms/{flops / (ms * 1e-3) / 1e12:.3f}TF"
                 for name, ms in timings.items())
             lines.append(f"k={k:>3} n={n:>3}: {detail}  "
-                         f"torch/triton={timings['triton'] / timings['torch']:.2f}x")
+                         f"triton/torch={timings['triton'] / timings['torch']:.2f}x")
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
     return "\n".join(lines)
@@ -528,7 +526,7 @@ def precision_check_body() -> str:
     return "\n".join(lines)
 
 
-def counters_body() -> str:
+def counters_body(clock_control: str | None = None) -> str:
     """The ncu permission probe (prediction 1's only admissible instrument).
 
     Runs once, early, and on the smallest grid, because the expected outcome is
@@ -556,8 +554,12 @@ def counters_body() -> str:
         os.environ["PATH"] = f"{os.path.dirname(ncu)}:{os.environ['PATH']}"
     # ncu's default clock-locking is refused on Modal's shared GPU hosts (the
     # first L4 probe failed on exactly that, not on counter permission), so the
-    # probe retries under the waiver documented in bench/profile.py.
-    os.environ.setdefault("TRITONFORMER_NCU_CLOCK_CONTROL", "none")
+    # probe retries under the waiver documented in bench/profile.py. Set from
+    # the caller, never defaulted on: a locked-clock host must keep producing
+    # locked-clock rows, and rows taken under the waiver are not distinguishable
+    # from them once written.
+    if clock_control:
+        os.environ["TRITONFORMER_NCU_CLOCK_CONTROL"] = clock_control
     from bench.profile import profile_kernel
     try:
         rows = profile_kernel("bench.run_mlp", "mlp", "triton_fused", 1,
@@ -588,52 +590,9 @@ def sweep_body(precision: str = "ieee",
     return "\n".join(log), _read(LATENCY_CSV)
 
 
-_MEASURE_LAUNCHES = """
-import json
-import torch
-from torch.profiler import ProfilerActivity, profile
-import importlib
-
-module = importlib.import_module({module!r})
-specs = module.SPEC if isinstance(module.SPEC, list) else [module.SPEC]
-spec = [s for s in specs if s.kernel == {kernel!r}][0]
-arm = spec.arms_for_batch({batch}, torch.float32)[{variant!r}]
-
-with torch.inference_mode():
-    for _ in range(3):
-        arm()
-    torch.cuda.synchronize()
-    with profile(activities=[ProfilerActivity.CUDA]) as prof:
-        arm()
-        torch.cuda.synchronize()
-
-names = [e.name for e in prof.events() if e.device_type.name == "CUDA"]
-print(json.dumps({{"stride": len(names), "distinct": len(set(names))}}))
-"""
-
-
-def _launches_per_call(module: str, kernel: str, variant: str, batch: int,
-                       precision: str) -> tuple[int, int]:
-    """(launches per steady-state call, distinct kernel names in one call).
-
-    Measured in a fresh subprocess for the reason bench/collect_counters.py
-    documents at length: measuring several arms back-to-back in one process
-    perturbs cuBLAS's per-shape algorithm cache and yields drifting launch
-    counts, while ncu always profiles a brand-new process.
-    """
-    script = _MEASURE_LAUNCHES.format(module=module, kernel=kernel,
-                                      variant=variant, batch=batch)
-    result = subprocess.run([sys.executable, "-c", script], capture_output=True,
-                            text=True, env=_env(_precision_env(precision)))
-    if result.returncode != 0:
-        raise RuntimeError(f"launch measurement failed for {module}/{variant}:\n"
-                           f"{result.stdout}\n{result.stderr}")
-    payload = json.loads(result.stdout.strip().splitlines()[-1])
-    return payload["stride"], payload["distinct"]
-
-
 def counter_grid_body(precision: str = "ieee",
-                      include_vit: bool = False) -> tuple[str, str]:
+                      include_vit: bool = False,
+                      clock_control: str | None = "none") -> tuple[str, str]:
     """Prediction 1's measurement: DRAM traffic per arm, at the same kernels,
     variants and batch sizes already measured on sm_75.
 
@@ -644,40 +603,32 @@ def counter_grid_body(precision: str = "ieee",
     chosen to match them exactly rather than to be convenient: same kernel,
     same variant, same batch, same metric set.
 
-    `bench.collect_counters` supplies the vit_forward batch-1 grid unchanged.
-    The per-kernel arms it does not cover are profiled here directly through
-    `bench.profile.profile_kernel`, with the launch window measured per arm --
-    a composed arm launches several kernels per call, and a window that does
-    not cover exactly one whole call either misses traffic or double-counts it.
+    Both grids are driven by `bench/collect_counters.py` -- the vit_forward one
+    through its default path, the per-kernel arms through its `--arm` mode. An
+    earlier version of this function reimplemented the launch-window logic here
+    instead, changed "skip one whole pass" to "skip five strides", and thereby
+    profiled the benchmark's own `* 0.05` setup multiply while labelling it
+    `_mlp_fused_kernel`. The driver it duplicated documents the correct rule and
+    now also validates kernel identity; calling it is the fix.
 
     Returns (log, csv_text).
     """
-    os.environ.setdefault("TRITONFORMER_NCU_CLOCK_CONTROL", "none")
+    if clock_control:
+        os.environ["TRITONFORMER_NCU_CLOCK_CONTROL"] = clock_control
     ncu = next((c for c in _ncu_candidates() if os.path.dirname(c)
                 and os.path.exists(c)), None)
     if ncu:
         os.environ["PATH"] = f"{os.path.dirname(ncu)}:{os.environ['PATH']}"
 
-    log = []
-    from bench.profile import profile_kernel, record_counters
-    os.environ["TRITON_F32_DEFAULT"] = precision
-    for module, kernel, variants, batch in COUNTER_GRID:
-        for variant in variants:
-            try:
-                stride, distinct = _launches_per_call(module, kernel, variant,
-                                                      batch, precision)
-                rows = profile_kernel(module, kernel, variant, batch, "float32",
-                                      launch_skip=5 * stride,
-                                      launch_count=stride,
-                                      expected_kernels=distinct)
-                record_counters(rows, COUNTERS_CSV)
-                traffic = {row["metric"]: row["value"] for row in rows
-                           if row["metric"].startswith("dram__")}
-                log.append(f"{kernel}/{variant}@{batch}: {stride} launches/call, "
-                           f"{distinct} distinct, {len(rows)} rows, {traffic}")
-            except Exception as exc:
-                log.append(f"{kernel}/{variant}@{batch}: FAILED "
-                           f"{type(exc).__name__}: {exc}")
+    env = _precision_env(precision)
+    if clock_control:
+        env["TRITONFORMER_NCU_CLOCK_CONTROL"] = clock_control
+
+    arms = [f"{module}:{kernel}:{variant}:{batch}"
+            for module, kernel, variants, batch in COUNTER_GRID
+            for variant in variants]
+    log = [_run([sys.executable, "-m", "bench.collect_counters",
+                 *sum(([f"--arm", arm] for arm in arms), [])], env, stream=True)]
 
     # The per-kernel arms above run first and the whole-model grid is opt-in,
     # because the per-kernel arms are what prediction 1 actually names: the
@@ -686,8 +637,8 @@ def counter_grid_body(precision: str = "ieee",
     # context, and ncu replays every kernel of a full forward pass, so it is by
     # far the more expensive of the two on a metered GPU.
     if include_vit:
-        log.append(_run([sys.executable, "-m", "bench.collect_counters"],
-                        _precision_env(precision)))
+        log.append(_run([sys.executable, "-m", "bench.collect_counters"], env,
+                        stream=True))
     return "\n".join(log), _read(COUNTERS_CSV)
 
 
@@ -790,13 +741,13 @@ if modal is not None:
         return _echo(tests_body(precision))
 
     @app.function(image=ncu_image, gpu="L4", timeout=900)
-    def probe_counters() -> str:
-        return _echo(counters_body())
+    def probe_counters(clock_control: str = "none") -> str:
+        return _echo(counters_body(clock_control))
 
     @app.function(image=ncu_image, gpu="L4", timeout=2700)
-    def counter_grid(precision: str = "ieee",
-                     include_vit: bool = False) -> tuple[str, str]:
-        log, csv_text = counter_grid_body(precision, include_vit)
+    def counter_grid(precision: str = "ieee", include_vit: bool = False,
+                     clock_control: str = "none") -> tuple[str, str]:
+        log, csv_text = counter_grid_body(precision, include_vit, clock_control)
         return _echo(log), csv_text
 
     @app.function(image=image, gpu="L4", timeout=1800)
@@ -901,6 +852,17 @@ def merge_csv(remote_text: str, path: str) -> str:
     count_fields = lambda line: len(next(csv.reader([line])))
     expected = count_fields(strip(local_lines[0]))
     rows = [strip(line) for line in remote_lines[1:]]
+
+    # Merging the same returned CSV twice would silently duplicate every row,
+    # and these rows carry timestamps precise enough that a duplicate is not
+    # obvious on inspection. Refuse instead.
+    already = {strip(line) for line in local_lines[1:]}
+    duplicates = [row for row in rows if row in already]
+    if duplicates:
+        raise SystemExit(
+            f"{path}: {len(duplicates)} of {len(rows)} row(s) are already "
+            f"present -- refusing to merge the same results twice. "
+            f"First: {duplicates[0][:100]}")
     bad = [row for row in rows if count_fields(row) != expected]
     if bad:
         raise SystemExit(f"{path}: {len(bad)} row(s) have the wrong field "
