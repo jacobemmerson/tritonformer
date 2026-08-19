@@ -58,9 +58,23 @@ break it:
   valid** — it matched measurement exactly at 128, 168, 226, and 255
   regs/thread — only the conclusion that registers were *binding* for
   the mega-MLP specifically was withdrawn.
-- Experiment 3 (replicating on an L4 GPU) was never run — it required
-  interactive `modal setup`, which did not happen this pass. The rule's
-  card-specificity remains untested.
+- **Replicated on an L4 (sm_89) via Modal**, predictions pre-registered
+  before measuring (`docs/findings/09-l4-replication.md`). The headline
+  survives the card change: `triton_fused` costs more than
+  `triton_composed`, which costs more than eager `torch`, at every batch
+  but one — over-fusion is not an artifact of a small, slow,
+  tensor-core-less laptop GPU. The penalty shrinks substantially
+  (5.93x -> 2.68x torch at batch 128) without inverting, and fusion's
+  DRAM-read advantage persists on every rung (1.50x->1.55x, 2.47x->2.02x,
+  3.54x->4.94x), so the prediction that a 48 MB L2 would make fusion
+  pointless is broken — by not happening, not by reversing.
+- **A precision caveat the project could not see on one card.** Triton's
+  `tl.dot` defaults to TF32 on tensor-core hardware; sm_75 has none, so
+  every measurement here is IEEE fp32 *by accident of hardware*, not by
+  choice. Under that default on sm_89, 70 of 153 tests fail and no kernel
+  declares a precision policy — arguably the most consequential thing
+  Experiment 3 found, and none of its four predictions
+  (`docs/findings/09-l4-replication.md`).
 
 **Scope note:** this is forward-pass inference only; there is no training
 loop in this codebase. A Triton training loop and optimizer was an
