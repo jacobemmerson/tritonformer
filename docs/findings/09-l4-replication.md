@@ -150,7 +150,18 @@ l2_cache_B         50,331,648
 torch              2.11.0+cu128
 triton             3.6.0
 ncu                2025.1.1.0
+matmul_allow_tf32  False
+cudnn_allow_tf32   True
 ```
+
+**Provenance of the two `allow_tf32` lines, because they carry weight below.** They were
+printed by the `smoke` invocation's `_describe_device()`, not by the sweep process itself.
+They are the container image's process defaults, and no measurement body other than
+`tf32_body` ever writes those flags — `sweep_body`, `counter_grid_body` and `sdpa_body`
+leave them alone, and `tf32_body` restores `False` before returning. So the sweeps ran at
+`matmul_allow_tf32 = False`, on the evidence of the same image's recorded default rather
+than a read-back inside the sweep process. That is good evidence and not a direct
+observation; the distinction is kept wherever the value is load-bearing.
 
 Torch and Triton match the 1650 Ti host exactly. Python differs (3.13.3 in the container
 vs 3.14.4 locally) because Modal's `debian_slim` offers no 3.14; the pinned wheels are the
@@ -216,7 +227,7 @@ kernel-identity-validated. The sm_75 rows came from earlier campaigns whose capt
 were chosen per experiment, so they are *intended*-equivalent rather than produced by
 identical driver code.
 
-## Prediction 1 — BROKEN
+## Prediction 1 — BROKE
 
 > **1.** The rule's premise may collapse. [...] a `[128,3,64,64]` fp32 intermediate is
 > 6.29 MB and fits in 48 MB of L2, so the unfused arm may never reach DRAM. If so, **even
@@ -240,7 +251,7 @@ The same data as the cross-card change per arm:
 | `attention` | -17.2% | +0.9% |
 | `mlp` | -74.0% | -81.4% |
 
-**Both halves of the prediction failed.**
+**BROKE on both halves.**
 
 - **The composed arms did not collapse as a class.** `layernorm_residual`'s composed arm
   read **11.6% more** on the L4; `attention`'s fell 17.2%; only `mlp`'s fell substantially
@@ -320,7 +331,7 @@ For continuity with Experiments 1/1b (L4, ieee):
 | `BLOCK_M=2, BLOCK_H=32` (`mlp_fused_lowreg`) | 110 | 35,072 | 2 | 33.33% |
 | `BLOCK_M=16, BLOCK_H=16` (`mlp_fused_blockh`) | 121 | 33,792 | 2 | 33.33% |
 
-## Prediction 3 — the premise is FALSE on Ada
+## Prediction 3 — BROKE; the premise is false on Ada
 
 > **3. The matmul comparison needs controlling.** cuBLAS gets tensor cores; our fp32
 > `tl.dot` does not. Report strict-fp32 AND TF32-enabled numbers, or the comparison
@@ -428,18 +439,25 @@ despite Ada having one — expected, since its FlashAttention kernels do not ser
 pre-registered expectation ("SDPA will select a different backend") is technically
 satisfied and substantively not: it is the same kernel, recompiled.
 
-Latency at batch 128, heads 3, seq 64, head_dim 64, fp32:
+Latency at batch 128, heads 3, seq 64, head_dim 64, fp32. The column heading is the
+**Triton** precision only: `torch.backends.cuda.matmul.allow_tf32` was never written by the
+SDPA measurement, so SDPA ran at the container's recorded default of `False` in both
+columns (see Environment). **Only the `ieee` column is a matched comparison.**
 
-| arm | ieee | tf32 |
+| arm | ieee (matched) | tf32 (Triton only — NOT matched) |
 |---|---:|---:|
 | `F.scaled_dot_product_attention` | 0.1508 ms | 0.1504 ms |
 | `attention_flash` (ours) | 0.2727 ms | 0.1322 ms |
 | `attention_composed` (ours) | 0.2566 ms | 0.2559 ms |
-| **flash / sdpa** | **1.81x slower** | **0.88x — ours wins** |
+| **flash / sdpa** | **1.81x slower** | 0.88x — **mismatched, not a win** |
 
-On sm_75 our flash kernel lost to SDPA by 3.26x. On the L4 it loses by 1.81x at matched
-IEEE precision and **beats** SDPA by 12% when allowed the TF32 its competitor is not using
-here. SDPA's own timing is unaffected by the Triton knob, as it must be.
+**At matched precision our flash kernel still loses to SDPA on the L4, by 1.81x** — down
+from 3.26x on sm_75, which is the result. The 0.88x in the second column **is not a kernel
+comparison and must not be quoted as one**: it puts our kernel on tensor cores against an
+SDPA that is not using them, the same mismatch prediction 3's grid contains. SDPA's own
+timing is unaffected by the Triton knob (0.1508 vs 0.1504 ms), as it must be, which is
+consistent with — but on its own no proof of — SDPA being off the tensor cores; the
+recorded `matmul_allow_tf32 False` is what supports that.
 
 ## The largest finding is none of the four: the kernels are not TF32-safe
 
@@ -477,8 +495,10 @@ Four claims, each independently evidenced:
    `model/kernels/` passes `input_precision`, and no test asserts which precision is in
    force. The policy is inherited from a backend default that differs by hardware
    generation and is invisible at every call site.
-4. **Every failure identified in the measurement record is a `tl.dot` kernel**; every
-   elementwise and reduction kernel passed under both settings. Failures as recorded:
+4. **Every failure identified in the measurement record is a `tl.dot` kernel**, and every
+   elementwise and reduction kernel named in that record passed under both settings —
+   subject to the same 8-test gap below, which leaves the universal unproven in both
+   directions. Failures as recorded:
    `test_linear` (24), `test_mlp` (16), `test_linear_gelu` (8), `test_block` (8),
    `test_attention` (5, all `attention_flash`), `test_end_to_end` (1).
 
@@ -494,14 +514,30 @@ Four claims, each independently evidenced:
 This is a portability defect in the project's kernels, found by moving hardware, and it
 must not be softened into a tolerance problem. It also gates everything else in this
 document: **every L4 latency and counter row recorded here was taken under
-`TRITON_F32_DEFAULT=ieee`**, so it is arithmetic-for-arithmetic comparable to the sm_75
-record. TF32 numbers appear only in tables explicitly labelled with a precision —
+`TRITON_F32_DEFAULT=ieee`**.
+
+That knob governs `tl.dot`, and therefore only the Triton arms. **The `torch` and
+`torch_compile` arms route through cuBLAS, which `TRITON_F32_DEFAULT` does not touch at
+all**; their precision is set by `torch.backends.cuda.matmul.allow_tf32`, which no sweep
+body writes. Those arms are IEEE on the strength of the recorded container default
+(`matmul_allow_tf32 False`, Environment above) — the same default the sm_75 record ran
+under. Taken together the L4 rows are arithmetic-for-arithmetic comparable to sm_75, with
+the caveat that the torch-side half of that claim rests on a value recorded by `smoke`
+rather than read back inside the sweep process. Had the default been `True`, every
+within-card `triton/torch` ratio here would carry the same mismatch prediction 3 warns
+about — worth 1.56x on torch at k192/n768 (10.82 -> 16.84 TF), which is not a small
+number. A future campaign should read the flag back per sweep rather than inherit it.
+
+TF32 numbers appear only in tables explicitly labelled with a precision —
 prediction 2's register table, prediction 3's matmul tables, the `precision_check` table
 above, and the SDPA table — and nowhere else.
 
 ## `vit_forward` end-to-end — the comparison with full coverage on both cards
 
-All four arms at all five batches on both cards, so every cell is like-for-like. Ratios
+All four arms at all five batches on both cards. Every cell is like-for-like on the
+Triton side (`TRITON_F32_DEFAULT=ieee`, read back per run) and like-for-like on the torch
+side to the extent the recorded `matmul_allow_tf32 False` default is trusted — see the
+precision note above. Ratios
 against each card's *own* `torch` baseline, which is how the fusion ladder's conclusions
 are stated (>1 means slower than torch):
 
@@ -781,8 +817,10 @@ TF32 section, which is a finding, not a test failure to be fixed by loosening an
   no intermediate to absorb (prediction 1); `layernorm_residual`'s fusion win eroding to
   -11% at batch 128 while its traffic ratio barely moved (per-kernel rungs);
   `attention_flash`'s 3.60x/5.25x L4 speedup with traffic flat at +0.9% (same section);
-  and the batch-1 `vit_forward` rank flip (`vit_forward` section). The last three carry
-  named candidate hypotheses, each labelled untested; the first has none.
+  and the batch-1 `vit_forward` rank flip (`vit_forward` section). **Two of the four carry
+  a named candidate hypothesis**, each labelled untested — `attention_flash` (58 SMs vs 16)
+  and the rank flip (launch count). `mlp`'s traffic collapse and `layernorm_residual`'s
+  eroded win carry none at all.
 - **Prediction 2's `BLOCK_M` lever is live on sm_89 and was not pulled.** With shared
   memory no longer binding, Experiment 1's register sweep would be a genuine occupancy
   experiment on this card rather than the null it was on sm_75. That is the obvious next
