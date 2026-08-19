@@ -27,6 +27,7 @@ Setup, once, on the profiling host:
 import csv
 import io
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -63,19 +64,37 @@ def parse_ncu_csv(text: str) -> list[dict[str, str]]:
 
 
 def base_kernel_name(name: str) -> str:
-    """The bare kernel identifier, with return type, namespaces, template
-    arguments and parameter list stripped.
+    """A comparable identity for a kernel, with return type, namespaces and
+    parameter list stripped.
 
     Exists so a capture can be checked against what torch.profiler predicted:
     the two spell the same kernel differently (torch says
     `void at::native::vectorized_elementwise_kernel<4, at::native::AUnaryFunctor<...>>(...)`,
     ncu says `void vectorized_elementwise_kernel<4, AUnaryFunctor<...>>(...)`),
-    so only the identifier is comparable.
+    so the namespaces cannot be compared and neither can the raw string.
+
+    Template arguments are dropped EXCEPT the functor type names, which are kept
+    and appended. Dropping them entirely would collapse every templated torch
+    elementwise kernel to one name -- `vectorized_elementwise_kernel` -- and the
+    identity check would then be blind precisely where an arm's expected kernel
+    IS a torch elementwise one, which is the case for two of the composed arms
+    here. Keeping the functors distinguishes a `MulFunctor` multiply from a
+    `CUDAFunctor_add` add while still surviving the namespace difference.
     """
-    name = name.split("(")[0].split("<")[0].strip()
-    if name.startswith("void "):
-        name = name[len("void "):]
-    return name.strip().split("::")[-1]
+    stem = name.split("<")[0] if "<" in name else name.split("(")[0]
+    stem = stem.strip()
+    if stem.startswith("void "):
+        stem = stem[len("void "):]
+    base = stem.strip().split("::")[-1]
+
+    # Scanned over the WHOLE name, not a prefix: ncu writes non-type template
+    # arguments as `<(int)4, ...>`, so splitting on the first "(" to drop the
+    # parameter list would truncate the name before its functor arguments and
+    # silently erase the very discriminator this function exists to keep. The
+    # parameter list repeats those functors, which a set makes harmless.
+    functors = sorted({identifier.split("::")[-1]
+                       for identifier in re.findall(r"[\w:]*Functor\w*", name)})
+    return f"{base}<{','.join(functors)}>" if functors else base
 
 
 def profile_kernel(module: str, kernel: str, variant: str, batch: int,

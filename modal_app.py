@@ -23,7 +23,6 @@ is new, so a schema drift would corrupt 400+ existing rows silently.
 """
 import argparse
 import csv
-import json
 import os
 import subprocess
 import sys
@@ -592,7 +591,7 @@ def sweep_body(precision: str = "ieee",
 
 def counter_grid_body(precision: str = "ieee",
                       include_vit: bool = False,
-                      clock_control: str | None = "none") -> tuple[str, str]:
+                      clock_control: str | None = None) -> tuple[str, str]:
     """Prediction 1's measurement: DRAM traffic per arm, at the same kernels,
     variants and batch sizes already measured on sm_75.
 
@@ -628,7 +627,7 @@ def counter_grid_body(precision: str = "ieee",
             for module, kernel, variants, batch in COUNTER_GRID
             for variant in variants]
     log = [_run([sys.executable, "-m", "bench.collect_counters",
-                 *sum(([f"--arm", arm] for arm in arms), [])], env, stream=True)]
+                 *sum((["--arm", arm] for arm in arms), [])], env, stream=True)]
 
     # The per-kernel arms above run first and the whole-model grid is opt-in,
     # because the per-kernel arms are what prediction 1 actually names: the
