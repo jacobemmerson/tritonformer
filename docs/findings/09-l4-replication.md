@@ -250,9 +250,18 @@ The same data as the cross-card change per arm:
 
 **The buried assumption that failed**, and the part worth carrying forward: the prediction
 assumed a bigger cache would preferentially help the arm with an intermediate to absorb.
-Where composed traffic did fall (`mlp`, -74.0%) the fused arm's fell at least as much
-(-81.4%), so the ratio between them survived. A larger L2 helps both arms; it does not
-selectively erase the round-trip that fusion removes, at least not at these sizes.
+It did not. On the one rung where traffic fell substantially (`mlp`) *both* arms fell, the
+fused one further (-74.0% composed, -81.4% fused), so the ratio survived; on the other two
+rungs four of the four arms moved by -17.2% to +11.6%, i.e. not in the direction or
+magnitude a cache-absorption story predicts, and three of the six measured arms read
+**more** DRAM on the 48 MB-L2 card than on the ~1 MB one.
+
+**No mechanism is offered for why the ratio survived, because none was measured.** "A
+larger L2 helps both arms" would be a story fitted to one rung and contradicted by the
+other two. What the counters establish is the negative result — the composed arms did not
+collapse and fusion kept paying — not the reason for it. `mlp`'s fused arm in particular
+fell **-81.4%** while having no intermediate to absorb at all; that collapse is
+unaccounted for and is listed with this document's other unexplained results below.
 
 `layernorm_residual` — the rung the prediction explicitly named, whose 22-31% win it
 proposed to reveal as a small-L2 artifact — is the rung that moved **least** (1.50x ->
@@ -343,11 +352,28 @@ Full grid, `triton/torch` latency ratio (>1 means Triton slower), batch 128:
 | tf32 | False | **0.88x** | **0.84x** | **0.82x** | **0.85x** |
 | tf32 | True | 1.11x | 1.03x | 1.27x | 1.45x |
 
-**At matched precision policy the hand-written Triton kernel beats cuBLAS by 12-18%**
-(0.82-0.88x, both at TF32), and `triton_tuned` beats TF32-enabled cuBLAS in three of four
-shapes. The 1.4-3.0x deficits that read as "our kernel is worse" are mostly the precision
-mismatch the prediction warned about — it simply had the direction backwards about who was
-getting the tensor cores.
+**Read only the two matched-policy rows.** The four-row grid crosses two independent
+knobs, and just two of its rows compare like with like:
+
+| matched policy | grid row | k192/n576 | k192/n192 | k192/n768 | k768/n192 |
+|---|---|---:|---:|---:|---:|
+| both IEEE | Triton `ieee`, torch `allow_tf32=False` | 1.83x | 1.36x | 1.90x | 1.54x |
+| both TF32 | Triton `tf32`, torch `allow_tf32=True` | 1.11x | 1.03x | 1.27x | 1.45x |
+
+**At matched precision cuBLAS still wins — the Triton kernel is 36-90% slower with both at
+IEEE and 3-45% slower with both at TF32.** The two remaining rows are mismatches and must
+not be read as kernel comparisons: the `Triton tf32 / torch allow_tf32=False` row
+(0.82-0.88x) puts our kernel on tensor cores against a cuBLAS forbidden them, and the
+`Triton ieee / torch allow_tf32=True` row (1.75-3.02x) does the reverse. That torch's flag
+genuinely binds is visible in the TFLOPs table: 10.82 TF at `False` against 16.84 TF at
+`True`, same shape, same call.
+
+So the deficits split in two. **The 1.75-3.02x band is mismatch-driven** and shrinks to
+1.03-1.45x once both sides are on tensor cores. **The 1.36-1.90x band is not** — it is a
+genuine matched-IEEE deficit with no instrumentation artifact behind it. `triton_tuned`
+closes most of the remaining gap at the one shape measured for it (k192/n768: 16.12 TF
+against TF32-enabled cuBLAS's 16.84 TF, ~4% short — parity, not a win); the other three
+shapes were not measured for that arm, so no claim is made about them.
 
 **Cost of IEEE relative to TF32, from the controlled measurement: ~2.3x** (`triton` at
 k=192/n=768, 5.63 -> 13.26 TF; 2.0-2.4x across the other three shapes). The full test
@@ -355,11 +381,16 @@ suite also ran 415 s under `tf32` versus 1,299 s under `ieee`, but that ~3x is w
 evidence — the two runs differ in 70 pass/fail outcomes and include every non-`tl.dot`
 test — and should not be quoted as the figure.
 
-Verdict: **prediction 3's premise is BROKEN.** Its methodological instruction — report both
-precisions, never average them — held and was necessary; without it every L4 number in this
-document would silently be a different arithmetic from every sm_75 number in the corpus.
+Verdict: **prediction 3's premise BROKE.** Its methodological instruction — report both
+precisions, never average them — was necessary and is vindicated: without it every L4
+number in this document would silently be a different arithmetic from every sm_75 number in
+the corpus, and the mismatched 0.82-0.88x row would read as a kernel win. The performance
+conclusion underneath is the unexciting one. **cuBLAS still beats our GEMM at matched
+precision, on Ada as on Turing** — `07-retuning.md`'s parity-at-best finding survives the
+card change; only its stated *reason* ("on a card with no tensor cores cuBLAS is hard to
+beat") turns out not to be the operative one, since cuBLAS wins on a card with them too.
 
-## Prediction 4 — HOLDS; the bound moved and did not disappear
+## Prediction 4 — HELD; the bound moved and did not disappear
 
 > **4. The monolithic block kernel still fails to compile.** It needs 262,144 B; Ada
 > allows ~99 KB/block. The bound moves, it does not disappear.
@@ -446,10 +477,19 @@ Four claims, each independently evidenced:
    `model/kernels/` passes `input_precision`, and no test asserts which precision is in
    force. The policy is inherited from a backend default that differs by hardware
    generation and is invisible at every call site.
-4. **Every failure is a `tl.dot` kernel**; every elementwise and reduction kernel passed
-   under both settings. Failures: `test_linear` (24), `test_mlp` (16), `test_linear_gelu`
-   (8), `test_block` (8), `test_attention` (5, all `attention_flash`), `test_end_to_end`
-   (1).
+4. **Every failure identified in the measurement record is a `tl.dot` kernel**; every
+   elementwise and reduction kernel passed under both settings. Failures as recorded:
+   `test_linear` (24), `test_mlp` (16), `test_linear_gelu` (8), `test_block` (8),
+   `test_attention` (5, all `attention_flash`), `test_end_to_end` (1).
+
+   **That enumeration sums to 62, against the 70 reported failed. Eight failures are
+   unaccounted for.** The gap is inherited from the measurement record, which lists the
+   per-file counts without the full failure list, and it cannot be closed without re-running
+   the suite on an L4 — which this experiment will not do. So claim 4 is **evidenced for
+   the 62 enumerated failures and unverified for the remaining 8**. It is stated at that
+   strength rather than weakened to fit: the plausible homes for the missing 8 are
+   `test_qkv` and `test_vit_baseline`, both `tl.dot`-bearing, but that is a guess and is
+   not offered as evidence. Anyone who re-runs the `tf32` suite should close this.
 
 This is a portability defect in the project's kernels, found by moving hardware, and it
 must not be softened into a tolerance problem. It also gates everything else in this
@@ -470,8 +510,8 @@ are stated (>1 means slower than torch):
 | 1650 Ti | 1 | 0.92x | 2.26x | 5.01x |
 | 1650 Ti | 8 | 1.07x | 2.15x | 5.27x |
 | 1650 Ti | 32 | 0.77x | 1.95x | 5.07x |
-| 1650 Ti | 128 | 0.83x | 2.27x | 5.93x |
-| 1650 Ti | 512 | 1.19x | 1.91x | 4.74x |
+| 1650 Ti | 128 | 0.83x † | 2.27x | 5.93x |
+| 1650 Ti | 512 | 1.19x † | 1.91x † | 4.74x † |
 | L4 | 1 | 0.63x | **2.05x** | **1.80x** |
 | L4 | 8 | 0.71x | 1.80x | 1.58x |
 | L4 | 32 | 0.83x | 1.67x | 3.95x |
@@ -485,8 +525,15 @@ Absolute medians (ms) and the L4's speedup over the 1650 Ti at the same arm and 
 | 1 | 0.8281 -> 1.5094 (**0.55x**) | 0.7614 -> 0.9569 (0.80x) | 1.8739 -> 3.0930 (0.61x) | 4.1472 -> 2.7228 (1.52x) |
 | 8 | 2.8652 -> 1.7664 (1.62x) | 3.0684 -> 1.2585 (2.44x) | 6.1619 -> 3.1821 (1.94x) | 15.0967 -> 2.7868 (5.42x) |
 | 32 | 11.5983 -> 1.9236 (6.03x) | 8.9847 -> 1.6026 (5.61x) | 22.6526 -> 3.2046 (7.07x) | 58.8083 -> 7.5976 (7.74x) |
-| 128 | 39.5250 -> 8.7685 (4.51x) | 32.9621 -> 8.8253 (3.73x) | 89.6230 -> 12.0924 (7.41x) | 234.3975 -> 23.5372 (9.96x) |
-| 512 | 203.2131 -> 39.1327 (5.19x) | 241.7115 -> 51.3992 (4.70x) | 389.1505 -> 55.9514 (6.96x) | 963.1414 -> 100.5942 (9.57x) |
+| 128 | 39.5250 -> 8.7685 (4.51x) | 32.9621 † -> 8.8253 (3.73x) | 89.6230 -> 12.0924 (7.41x) | 234.3975 -> 23.5372 (9.96x) |
+| 512 | 203.2131 † -> 39.1327 (5.19x) | 241.7115 † -> 51.3992 (4.70x) | 389.1505 † -> 55.9514 (6.96x) | 963.1414 -> 100.5942 (9.57x) |
+
+**†** marks a cell whose sm_75 side involves a `flagged` row, per the throttle disclosure
+above: `torch_compile` @128 (675 MHz), `torch` @512 (915 MHz), `torch_compile` @512
+(630 MHz), `triton_composed` @512 (300 MHz). Every batch-512 ratio against the sm_75 torch
+baseline inherits that baseline's flag, which is why the whole 1650 Ti @512 ratio row is
+marked. **No ratio carrying a † should be quoted as a measurement**, per this document's
+own rule. Batches 1, 8 and 32 are unflagged on the sm_75 side throughout.
 
 Reading it:
 
@@ -497,19 +544,32 @@ Reading it:
 - **The penalty shrinks substantially but does not invert.** `triton_fused` costs 5.93x
   torch at batch 128 on the 1650 Ti and 2.68x on the L4; `triton_composed` goes 2.27x ->
   1.38x. The L4 is kinder to both Triton arms and kindest to the most over-fused one.
-- **One rank flip, at batch 1.** On the L4 `triton_fused` (1.80x torch) is *faster* than
-  `triton_composed` (2.05x torch); on the 1650 Ti it was decisively slower (5.01x vs
-  2.26x). At batch 1 the model is launch-bound and the fused block launches fewer kernels
-  — the original "fewer launches win at small batch" argument finally pays off on a card
-  whose per-launch overhead is not dwarfed by its compute time. **No row in this
-  comparison is flagged on either card**, so the flip is not a throttling artifact.
+- **One rank flip, at batch 1 — measured; its cause is not.** On the L4 `triton_fused`
+  (1.80x torch) is *faster* than `triton_composed` (2.05x torch); on the 1650 Ti it was
+  decisively slower (5.01x vs 2.26x). **No row in this comparison is flagged on either
+  card**, so the flip is not a throttling artifact. The obvious reading — at batch 1 the
+  model is launch-bound, and the fused block launches fewer kernels (73 against 77, from
+  `06-synthesis.md`), so its launch saving finally exceeds its serialisation cost — is
+  **an untested hypothesis, labelled as such.** This experiment measured no launch count,
+  no per-launch overhead and no kernel-time-versus-wall-time split on the L4; it ruled out
+  clocks and nothing else. It is the same evidentiary position as `attention_flash` below
+  and gets the same treatment. What would settle it: a `torch.profiler` launch-count and
+  kernel-time breakdown for both arms at batch 1 on the L4, which is cheap and was not
+  run.
 - **The L4 is *slower* than the 1650 Ti at batch 1** for three of four arms (0.55x, 0.61x,
   0.80x). A 58-SM datacenter card cannot show its advantage on a batch-1 forward pass of a
   tiny ViT: the work is latency-bound, so per-launch overhead dominates and the extra SMs
   and bandwidth have nothing to bite on. This is *not* a clock effect — all four batch-1
   L4 rows record `sm_clock_mhz=2040`, the highest in the entire run.
-- **`torch_compile` is the only arm that beats eager on both cards at small batch** and
-  loses at batch 512 on both. Experiment 2's Inductor finding replicates across cards.
+- **`torch_compile` beats eager at small batch on both cards** (0.92x/0.77x on the
+  1650 Ti at batches 1/32, 0.63x/0.71x/0.83x on the L4 at 1/8/32, all unflagged), which is
+  the trustworthy half of Experiment 2's Inductor finding replicating across cards. **The
+  "and loses at batch 512 on both" half does not survive the throttle disclosure.** The
+  sm_75 1.19x cell has `torch_compile` at 630 MHz against a `torch` baseline at 915 MHz —
+  a 1.45x clock gap that could account for the whole ratio on its own, and
+  `08-inductor.md`'s own caveats section already flagged that figure as imprecise. The
+  batch-512 loss is established **on the L4 only** (1.31x, no flagged row involved on
+  either side of the comparison).
 
 ## Per-kernel rungs
 
@@ -564,8 +624,9 @@ fusion *pointless* rather than registers making it *costly*? **Neither.** Both h
 the fork are refuted by the measurement.
 
 - **L2 did not make fusion pointless.** Fusion's DRAM-read advantage survived intact on
-  all three rungs (1.55x, 2.02x, 4.94x) on a card with ~48x the L2. The 48 MB cache helped
-  both arms roughly equally where it helped at all.
+  all three rungs (1.55x, 2.02x, 4.94x) on a card with ~48x the L2. Why it survived is not
+  established — see prediction 1; three of the six measured arms read *more* DRAM on the
+  bigger-L2 card, so no cache-absorption account fits the data.
 - **Registers did not become the cost either.** The mega-MLP still loses on the L4, at
   every batch except the launch-bound batch-1 `vit_forward` case — while its occupancy
   bookkeeping changed (25.00% -> 16.67%) and shared memory stopped binding entirely.
@@ -586,13 +647,24 @@ serial reduction cost the fusion its win on a card with 3.6x the SMs, 48x the L2
 bandwidth, and tensor cores. **The feasibility bound travels with the hardware; the
 serialisation cost travels with the kernel.**
 
-Two clauses the rule did not have and now needs:
+**How strong that second sentence is, stated precisely.** The H-loop was instrumented on
+sm_75 (Experiment 1b: iteration count 24 -> 48, latency ratio 3.8x -> 6.0x, with occupancy
+and traffic held constant) and **was not instrumented on the L4.** What the L4 contributes
+is eliminative: the fusion still loses while registers, occupancy and shared-memory binding
+all changed, and its DRAM advantage grew rather than shrank, so none of those can be the
+cost on this card either. The attribution to the H-loop is carried over from sm_75 as the
+only surviving candidate, not re-measured on Ada.
 
-- **A launch-count clause.** The batch-1 rank flip is the one place the L4 changes an
-  ordering, and it has nothing to do with memory: at small batch the model is
-  launch-bound, and fusion's launch-count saving — an effect the register rule never
-  mentions — is what pays. It pays on the card whose per-launch overhead is not dwarfed by
-  its own compute time.
+Two clauses the rule does not have — one a hypothesis, one supported:
+
+- **A candidate launch-count clause, not yet earned.** The batch-1 rank flip is the one
+  place the L4 changes an ordering, and it is the one place memory traffic plainly cannot
+  be the explanation. Launch count is the obvious candidate — it is the one axis on which
+  fusion is unambiguously ahead and which the register rule never mentions. **But this
+  experiment did not measure it on the L4**, so the clause is recorded as a hypothesis
+  worth testing, not as an amendment the evidence supports. Adding it to the rule on the
+  strength of one unexplained rank flip would be exactly the manufactured significance
+  this document refuses elsewhere.
 - **A precision-policy clause.** "Fusion pays when..." presupposes the two arms compute
   the same arithmetic. On sm_75 they did, silently and by accident. On sm_89 the default
   changes underneath unchanged source. Any cross-card claim about kernel quality is
@@ -663,13 +735,13 @@ changes is the *scope* those claims may be stated at.
 
 | claim | where | what the L4 changes |
 |---|---|---|
-| "Experiment 3 (replicating on an L4 GPU) was never run [...] The rule's card-specificity remains untested." | `README.md`, register-rule status list | **Now false.** It ran; this document is the result. This is the one statement in the corpus that a reader could be actively misled by, and correcting it is the single highest-value follow-up edit. |
+| "Experiment 3 (replicating on an L4 GPU) was never run [...] The rule's card-specificity remains untested." | `README.md`, register-rule status list | **Was false; corrected.** It ran, and this document is the result. The `README.md` bullet was replaced in a follow-up commit — the only edit this experiment made outside this file. |
 | "on this card, fusion pays only when it removes a DRAM round-trip without adding register or loop-serialization cost" | `README.md` headline | The "on this card" hedge can now be lifted for the *ordering* (fused > composed > torch survives on sm_89 at every batch but one) and must be kept for the *magnitudes* (5.93x -> 2.68x at batch 128) and for `layernorm_residual`'s win. |
 | `layernorm_residual` "22-31% faster" every batch | `02-layernorm-fusion.md`, restated in `08-inductor.md`'s recap table as "WINS 22-25%" | sm_75-scoped. On the L4 the fused arm is **11% slower** at batch 128 and only 1.6% faster at 512. Its DRAM advantage is unchanged (1.50x -> 1.55x), so the erosion has no measured cause. |
-| `attention_flash` "~3.26x slower than SDPA" | `04-flash-attention.md` (two places) | sm_75-scoped. On the L4: 1.81x slower at matched IEEE, and **0.88x — a win** when both use TF32. |
+| `attention_flash` "~3.26x slower than SDPA" | `04-flash-attention.md` (two places) | sm_75-scoped. On the L4 the gap narrows to **1.81x at matched IEEE**. The 0.88x figure in the SDPA table is *not* a matched comparison — it is our kernel on tensor cores against an SDPA that is not using them — and must not be quoted as a win. |
 | monolithic block "262,144 bytes required against a 65,536-byte budget" | `05-over-fusion.md`, `06-synthesis.md` | Still fails on sm_89, against a **101,376 B** opt-in limit. The 262,144 B figure is the uncommitted original's; the L4 test used a 278,528 B reconstruction. |
-| "our best tuned Triton GEMM only reaches cuBLAS parity, never beats it" | `07-retuning.md`, restated in `08-inductor.md` | Explicitly conditioned on "a card with no tensor cores" in `08-inductor.md`, and that condition is now known to be doing all the work: on sm_89 at matched TF32 our Triton GEMM **beats cuBLAS by 12-18%**. |
-| "`torch_compile` beat every arm this project hand-built at every batch except 8" | `README.md`, `08-inductor.md` | Replicates in shape, not in detail. On the L4 `torch_compile` beats eager at batches 1/8/32, ties at 128 (1.01x) and loses at 512 (1.31x); the batch-8 exception is sm_75-specific, the batch-512 loss is not. |
+| "our best tuned Triton GEMM only reaches cuBLAS parity, never beats it" | `07-retuning.md`, restated in `08-inductor.md` | **Survives the card change.** At matched precision cuBLAS still wins on sm_89 (36-90% at IEEE, 3-45% at TF32); `triton_tuned` reaches ~4% short of TF32 cuBLAS at the one shape measured. What does not survive is the *reason* `08-inductor.md` gave — "on a card with no tensor cores cuBLAS is hard to beat" — since cuBLAS also wins on a card with them. |
+| "`torch_compile` beat every arm this project hand-built at every batch except 8" | `README.md`, `08-inductor.md` | Replicates in shape, not in detail. On the L4 `torch_compile` beats eager at batches 1/8/32, ties at 128 (1.01x) and loses at 512 (1.31x), so the batch-8 exception is sm_75-specific. The batch-512 loss is now established on the L4; the sm_75 1.19x that was its only prior evidence is throttle-contaminated on both sides and should not be leaned on. |
 | "shared memory bounds fusion first, at compile time; registers collapse occupancy second" | `10-register-rule.md` | The first clause is hardware-dependent. For `mlp_fused` on sm_89 shared memory does not bind at all; the register file is the sole constraint. The H-loop conclusion is unaffected and corroborated. |
 | every `tl.dot` latency and accuracy number in the corpus | `04`, `05`, `07`, `08`, `10`, `00-hardware.md`'s probe | All of them are **IEEE fp32 by accident of sm_75 having no TF32 hardware**, not by choice. They remain valid, and they are not the numbers the same source produces on tensor-core hardware. |
 
@@ -704,11 +776,13 @@ TF32 section, which is a finding, not a test failure to be fixed by loosening an
   captures predate the `expected_kernel_names` guard. The `mlp` double-counting defect
   found here is exactly the class of error that guard exists to catch, and it was found in
   the sm_75 baseline by hand.
-- **`layernorm_residual`'s eroded win is unexplained.** Its traffic ratio did not move, so
-  the traffic story does not account for it. No alternative mechanism was measured, and
-  none is asserted.
-- **`attention_flash`'s large L4 speedup is unexplained** for the same reason, and the
-  58-SM occupancy hypothesis offered above is untested.
+- **Four results in this document are measured and unexplained**, and are left that way
+  rather than given a plausible story: `mlp`'s fused arm reading -81.4% fewer bytes with
+  no intermediate to absorb (prediction 1); `layernorm_residual`'s fusion win eroding to
+  -11% at batch 128 while its traffic ratio barely moved (per-kernel rungs);
+  `attention_flash`'s 3.60x/5.25x L4 speedup with traffic flat at +0.9% (same section);
+  and the batch-1 `vit_forward` rank flip (`vit_forward` section). The last three carry
+  named candidate hypotheses, each labelled untested; the first has none.
 - **Prediction 2's `BLOCK_M` lever is live on sm_89 and was not pulled.** With shared
   memory no longer binding, Experiment 1's register sweep would be a genuine occupancy
   experiment on this card rather than the null it was on sm_75. That is the obvious next
