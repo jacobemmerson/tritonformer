@@ -740,12 +740,12 @@ if modal is not None:
         return _echo(tests_body(precision))
 
     @app.function(image=ncu_image, gpu="L4", timeout=900)
-    def probe_counters(clock_control: str = "none") -> str:
+    def probe_counters(clock_control: str | None = None) -> str:
         return _echo(counters_body(clock_control))
 
     @app.function(image=ncu_image, gpu="L4", timeout=2700)
     def counter_grid(precision: str = "ieee", include_vit: bool = False,
-                     clock_control: str = "none") -> tuple[str, str]:
+                     clock_control: str | None = None) -> tuple[str, str]:
         log, csv_text = counter_grid_body(precision, include_vit, clock_control)
         return _echo(log), csv_text
 
@@ -779,7 +779,7 @@ if modal is not None:
 
     @app.local_entrypoint()
     def run(step: str, out_dir: str, precision: str = "ieee",
-            include_vit: bool = False) -> None:
+            include_vit: bool = False, clock_control: str | None = None) -> None:
         """One step per invocation, results written to out_dir.
 
         `modal run` discards a function's return value, so the CSVs a sweep
@@ -797,9 +797,10 @@ if modal is not None:
                            "counter_grid"}
         os.makedirs(out_dir, exist_ok=True)
         started = time.monotonic()
-        result = (steps[step].remote(precision, include_vit)
+        result = (steps[step].remote(precision, include_vit, clock_control)
                   if step == "counter_grid" else
-                  steps[step].remote(precision) if step in takes_precision
+                  steps[step].remote(clock_control) if step == "probe_counters"
+                  else steps[step].remote(precision) if step in takes_precision
                   else steps[step].remote())
         elapsed = time.monotonic() - started
         log, csv_text = result if isinstance(result, tuple) else (result, None)

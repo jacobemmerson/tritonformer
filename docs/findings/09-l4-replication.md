@@ -130,8 +130,15 @@ SDPA-backend expectation. No GPU time is spent until this document is committed.
 
 # Results
 
-Measured on Modal against an NVIDIA L4 (sm_89), source tree at commit `936b4f3` — the
-pre-registration commit above, so no kernel changed between predicting and measuring.
+Measured on Modal against an NVIDIA L4 (sm_89), from the source tree at commit `936b4f3` —
+the pre-registration commit above — plus the Modal harness commits `210c17f`..`e9cd408`
+that were written to take the measurements. **No kernel and no tolerance differs from
+`936b4f3` across that range** (`git diff 936b4f3..e9cd408 -- model/kernels/ tests/conftest.py`
+is empty), so nothing under test changed between predicting and measuring; what changed is
+the harness that measured it. The rows say so themselves: `commit_sha` reads `210c17f` on
+200 latency rows and `20a106c` on 20, and `210c17f` on 77 counter rows and `e9cd408` on 77.
+`936b4f3` appears in **no** L4 row, so this document must not claim it as the measuring
+commit.
 Raw measurement record: `.superpowers/sdd/2026-08-17-testing-the-register-rule/task-2-report.md`.
 Rows landed in `bench/results/latency.csv` (220 new) and `bench/results/counters.csv`
 (154 new, of which 77 are the superseded first capture — see below), distinguished by the
@@ -226,6 +233,21 @@ is a byte count, for that reason. One asymmetry to state plainly: only the L4 si
 kernel-identity-validated. The sm_75 rows came from earlier campaigns whose capture windows
 were chosen per experiment, so they are *intended*-equivalent rather than produced by
 identical driver code.
+
+**Which validator, precisely.** `bench/harness.py::commit_sha()` records HEAD with no
+dirty-tree marker, so a row's `commit_sha` names the last commit, not the working tree that
+produced it. The corrected capture (`2026-08-19T16:09`-`16:10`) records `e9cd408`, yet the
+identity guard it ran under was `a35f2e3`'s — which is *newer* than `e9cd408`. There is no
+contradiction: the guard was in the working tree, uncommitted, when the capture ran, so
+`commit_sha()` reported the previous commit. That is the no-dirty-marker limitation in a
+concrete instance. The guard in force was therefore `a35f2e3`'s and **not `823e03e`'s** —
+the latter, which keeps functor names instead of collapsing every templated torch functor to
+a bare `vectorized_elementwise_kernel`, did not exist yet. So these rows were validated by
+the *looser* guard. That is
+harmless here and was checked rather than assumed: for every arm measured, the expected and
+captured name sets still differ under the loose rule whenever the window slips, which is the
+failure this guard exists to catch. Rows captured after `823e03e` would additionally be
+protected against a same-base-name functor mismatch.
 
 ## Prediction 1 — BROKE
 
@@ -535,7 +557,8 @@ above, and the SDPA table — and nowhere else.
 ## `vit_forward` end-to-end — the comparison with full coverage on both cards
 
 All four arms at all five batches on both cards. Every cell is like-for-like on the
-Triton side (`TRITON_F32_DEFAULT=ieee`, read back per run) and like-for-like on the torch
+Triton side (`TRITON_F32_DEFAULT=ieee`, set per run in the child process env) and
+like-for-like on the torch
 side to the extent the recorded `matmul_allow_tf32 False` default is trusted — see the
 precision note above. Ratios
 against each card's *own* `torch` baseline, which is how the fusion ladder's conclusions
@@ -755,10 +778,15 @@ record, and a `superseded` marker column would break `record()`'s header contrac
   `22:46:*` (77 rows).** The wrong-kernel rows within it — 11 by metric row — are the
   `attention/triton_flash` and `mlp/triton_fused` arms.
 - **Corrected rows: timestamps `2026-08-19T16:09`-`16:10`.**
-- **Identification rule:** the superseded rows are self-identifying — their `kernel_name`
-  holds a torch `vectorized_elementwise_kernel` where a Triton kernel belongs. Any analysis
-  of L4 counter rows must filter on `kernel_name`, which is exactly the check that should
-  have been present from the start.
+- **Identification rule: use the timestamp, not `kernel_name`.** Only **11 of the 77**
+  superseded rows are self-identifying by `kernel_name` (the `attention/triton_flash` and
+  `mlp/triton_fused` arms, which hold a torch `vectorized_elementwise_kernel` where a Triton
+  kernel belongs). The other **66** — the three composed arms — are byte-for-byte plausible
+  and share their `kernel_name` values with their corrected counterparts, so **a
+  `kernel_name` filter alone would keep both copies and double-count every composed arm's
+  DRAM bytes.** Any analysis of L4 counter rows must select the `2026-08-19T16:09`-`16:10`
+  capture and exclude the `2026-08-18T22:45`-`22:46` one; `kernel_name` is a secondary check
+  that catches only the two wrong-kernel arms.
 
 ## Scoped reconciliation with the existing corpus (ruling R2)
 
