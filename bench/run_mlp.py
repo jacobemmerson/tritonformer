@@ -28,7 +28,8 @@ import torch
 
 from bench.runner import RunnerSpec, main
 from model.baseline.layers import mlp as mlp_torch
-from model.kernels.mlp import mlp_composed, mlp_fused
+from model.kernels.mlp import (mlp_composed, mlp_fused, mlp_fused_blockh,
+                               mlp_fused_lowreg)
 
 SEQ, DIM, HIDDEN = 64, 192, 768
 
@@ -43,6 +44,8 @@ def _arms_for_batch(batch: int, dtype: torch.dtype):
         "torch": lambda: mlp_torch(x, w1, b1, w2, b2),
         "triton_composed": lambda: mlp_composed(x, w1, b1, w2, b2),
         "triton_fused": lambda: mlp_fused(x, w1, b1, w2, b2),
+        "triton_fused_lowreg": lambda: mlp_fused_lowreg(x, w1, b1, w2, b2),
+        "triton_fused_blockh": lambda: mlp_fused_blockh(x, w1, b1, w2, b2),
     }
 
 

@@ -52,6 +52,51 @@ active). Consequences:
    a ratio between arms measured this way, so it survives the throttling
    even though the absolute numbers underneath it do not.
 
+**Retuned kernels exist as a separate follow-up.** `docs/findings/07-retuning.md`
+adds tuned `softmax` and `linear`/`linear_gelu` variants, measured under an
+explicit clock-lock declaration (`TRITONFORMER_LOCKED_CLOCK_MHZ`, see
+`bench/clocks.py`) with telemetry sampled during measurement rather than
+after it (a bug fix also documented there) rather than the throttled,
+unlocked, post-hoc-sampled conditions described above. An 1830 MHz lock was
+attempted first and failed to hold within the card's 50 W envelope; the
+numbers in that document were collected under a 1300 MHz-target lock that
+itself intermittently throttled to 300 MHz under sustained load. It isolates
+how much of the naive-Triton-vs-torch deficit reported in this document was a
+configuration artifact (undersized tiles, no L2 swizzle) versus intrinsic to
+Triton on this card. It does not revise any number in this document, with one
+qualification: `docs/findings/07-retuning.md` found that once *both* the
+composed and fused `linear_gelu` arms are autotuned, the fusion's naive-kernel
+win (+9-11%, Section 1 below and `03-epilogue-fusion.md`) reverses — the
+autotuned composed arm is 4.7-13.8% faster than the autotuned fused arm,
+verified on clean unthrottled data. Section 1's naive-kernel numbers below are
+unchanged and correct for the naive kernels they describe; the "two fusions
+paid off" count only holds at the naive-kernel tuning level this document
+measured.
+
+**`sm_clock_mhz`/`temp_c` changed meaning between this document's regime and
+`07-retuning.md`'s — read every cross-regime comparison with this in mind.**
+`latency.csv` accumulates rows from at least three measurement regimes under
+identical column headers: (i) this document's merged study — unlocked clocks,
+300-1575 MHz, both power and thermal caps active, `flagged` dead by
+construction (the lock-target query hit a `[N/A]` field, and telemetry was
+sampled *after* `compare()` returned rather than during it, letting the card
+recover before the sample); (ii) `07-retuning.md`'s retune — clocks locked to
+a 1300 MHz target, `flagged` live and meaningful, ~60% of heavy-kernel rows
+still drifted; (iii) the register-rule experiments (`10-register-rule.md`) —
+same locked-clock regime as (ii), mostly clean at the small batches they
+tested. Both `(i)` and `(ii)`/`(iii)` use the exact same column names, but
+`sm_clock_mhz`/`temp_c` mean different things in each: in regime (i) they are
+a **point sample taken after the measurement had already finished**; in
+regimes (ii)/(iii) they are the **minimum clock / maximum temperature observed
+during the measurement itself** (the sampling-bug fix `07-retuning.md`
+documents). No CSV column marks which regime a row belongs to — `record()`
+only writes a header for new files, so adding one would corrupt 400+ existing
+rows — so the practical rule is: **rows before the retune commit
+(`64b401c`) are regime (i); rows from it onward are regime (ii)/(iii).**
+Comparing a regime-(i) `sm_clock_mhz` against a regime-(ii) one as if they
+measured the same thing will produce a false conclusion about clock
+stability.
+
 ## 1. Which fusions helped, at which batch sizes, and by how much
 
 | Fusion | Rung | Helped at | Margin | Traffic ratio (measured vs predicted) |
@@ -96,6 +141,20 @@ cap, zero measured spill (`l1tex__t_bytes_pipe_lsu_mem_local_op_ld/st`
 both zero) — and still lost 3-4x. The compiler collapsed occupancy
 instead of spilling, a different, earlier failure mode than the one the
 brief predicted.
+
+> **Correction (Experiment 4, 2026-08-18):** the table row above and this
+> paragraph describe the occupancy collapse as the explanation for the
+> mega-MLP's loss. Experiment 1 (`docs/findings/10-register-rule.md`)
+> tested that causal claim directly — cutting registers 226 -> 128 should
+> restore occupancy to 50% by the same arithmetic, but measured occupancy
+> stayed pinned at 25.00%. Registers were not the binding constraint;
+> the 226-regs figure and the true (shared-memory-set) ceiling happened
+> to coincide at 1 block/SM. Experiment 1b further found that halving the
+> shared-memory tile also left occupancy flat and made the fusion worse.
+> The number (25.00% occupancy) is accurate; the causal reading of it
+> here is superseded. See `10-register-rule.md` for the full account and
+> the surviving mechanism (an unpipelined serial reduction over the
+> hidden dimension).
 
 The occupancy method itself validated cleanly across every rung it was
 checked against: 128 regs/thread → 50.0% predicted / 49.37% measured;
@@ -163,6 +222,29 @@ spill.*
   The only pure shared-memory datum in the project is the monolithic
   kernel, which never ran (it failed to compile), so its latency effect
   was never measured directly.
+
+> **Correction (Experiment 4, 2026-08-18), superseded by
+> `docs/findings/10-register-rule.md`:** the "Registers, runtime" bullet
+> above was tested directly and is wrong as a causal claim, though the
+> numbers in it are accurate. Experiment 1 cut `_mlp_fused_kernel`'s
+> registers 226 -> 128 (predicting, by this same arithmetic, 50%
+> occupancy) and measured occupancy unchanged at 25.00% — registers were
+> never binding. Experiment 1b then cut the shared-memory tile itself
+> (`BLOCK_H` 32 -> 16) and found occupancy *still* flat at 25.00%, with
+> the fusion getting worse (6.05x vs composed) rather than better. The
+> "what is inferred, not measured" bullet above turned out to be
+> prescient: tile size and register pressure are not what bind here.
+> **Reconciled headline, replacing the one above:** Shared memory sets
+> the compile-time feasibility bound, but the mega-MLP's actual latency
+> loss comes from the H-loop's unpipelined serial reduction, not from
+> register or occupancy collapse. The mechanism: fusing the MLP forces a
+> serial accumulation over the hidden dimension that two independent
+> GEMMs do not have, and Triton's compile-time-unrolled loop gives no way
+> to pipeline it (`num_stages` {1,2,3} measured a 0.003% spread — no
+> effect). The occupancy-arithmetic *method* itself remains validated
+> (it matched measurement exactly at 128, 168, 226, and 255 regs/thread
+> across this project); only the conclusion that registers were *binding*
+> for this specific kernel is withdrawn.
 
 The compiler declining that fusion outright, at compile time,
 before any runtime register or occupancy question could even arise, IS

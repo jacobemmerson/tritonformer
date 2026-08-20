@@ -2,6 +2,10 @@
 name = "tritonformer"
 version = "0.1.0"
 requires-python = ">=3.10"
+dependencies = [
+    "modal>=1.5.4",
+    "nvidia-ml-py",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

@@ -107,3 +107,95 @@ def mlp_fused(x: Tensor, w1: Tensor, b1: Tensor,
         BLOCK_H=32,
         num_warps=8, num_stages=1)
     return out.reshape(shape)
+
+
+@register(Component.MLP, "mlp_fused_lowreg")
+def mlp_fused_lowreg(x: Tensor, w1: Tensor, b1: Tensor,
+                     w2: Tensor, b2: Tensor) -> Tensor:
+    """Experiment 1 (The Flip), `docs/findings/10-register-rule.md`.
+
+    Same kernel body as `_mlp_fused_kernel` (`_mlp_fused_kernel` itself is
+    NOT modified -- it is a benchmarked rung baseline every finding cites).
+    This variant only shrinks `BLOCK_M` and `num_warps` to test whether
+    cutting the `[BLOCK_M, BLOCK_D]` accumulator's register footprint
+    restores occupancy enough to flip the fusion from a loss to a win, per
+    the register rule in docs/findings/07-retuning.md.
+
+    A register-count sweep across the plan's grid (BLOCK_M in {8,4,2} x
+    num_warps in {4,8}, via Triton's compiled-kernel metadata, not ncu)
+    found BLOCK_M=2, num_warps=8 is the ONLY config in that grid at
+    <=128 regs/thread: 128 regs x 256 threads/block = 32,768 regs/block
+    -> 2 blocks/SM by the register budget alone -> the plan's targeted
+    50% occupancy, matching `_linear_tuned_kernel`'s regime. This is the
+    config registered here; see docs/findings/10-register-rule.md for
+    the full sweep table and why shared memory turned out to cap actual
+    occupancy at 25% regardless (BLOCK_D x BLOCK_H tile shared-memory
+    usage does not shrink with BLOCK_M).
+    """
+    shape = x.shape
+    x_flat = x.contiguous().reshape(-1, shape[-1])
+    m, dim = x_flat.shape
+    hidden_dim = w1.shape[0]
+    w1, w2 = w1.contiguous(), w2.contiguous()
+    out = torch.empty_like(x_flat)
+    grid = lambda meta: (triton.cdiv(m, meta["BLOCK_M"]),)
+    _mlp_fused_kernel[grid](
+        x_flat, w1, b1, w2, b2, out,
+        m, dim, hidden_dim,
+        x_flat.stride(0), x_flat.stride(1),
+        w1.stride(0), w1.stride(1),
+        w2.stride(0), w2.stride(1),
+        out.stride(0), out.stride(1),
+        BLOCK_M=2,
+        BLOCK_D=triton.next_power_of_2(dim),
+        BLOCK_H=32,
+        num_warps=8, num_stages=1)
+    return out.reshape(shape)
+
+
+@register(Component.MLP, "mlp_fused_blockh")
+def mlp_fused_blockh(x: Tensor, w1: Tensor, b1: Tensor,
+                     w2: Tensor, b2: Tensor) -> Tensor:
+    """Experiment 1b (the real flip test), `docs/findings/10-register-rule.md`.
+
+    Same kernel body as `_mlp_fused_kernel` (not modified). Experiment 1
+    found occupancy pinned at 25% regardless of `BLOCK_M`, because the
+    w1/w2 tile -- BLOCK_D x BLOCK_H x 4B -- is shared-memory-bound, not
+    register-bound, and is BLOCK_M-independent. That experiment's
+    BLOCK_M cuts also multiplied the grid, inverting the fusion's DRAM
+    traffic saving as an unintended confound.
+
+    This variant holds BLOCK_M=16 (the committed `mlp_fused` value, so
+    the grid size and DRAM traffic comparison stay apples-to-apples) and
+    instead shrinks BLOCK_H, the knob that actually sets the
+    shared-memory tile size: BLOCK_D=256 x BLOCK_H x 4B.
+
+    Deviation from the plan's sweep grid, recorded here rather than
+    silently: BLOCK_H in {8, 4} was planned but neither compiles.
+    `_mlp_fused_kernel`'s second `tl.dot` reduces over BLOCK_H
+    (`hidden[BLOCK_M, BLOCK_H] @ w2[BLOCK_H, BLOCK_D]`), and Triton 3.6's
+    `tl.dot` requires the reduction dimension to be >= 16
+    ("Input shapes should have M >= 1, N >= 1 and K >= 16"). BLOCK_H=16
+    is therefore the only value below the committed 32 that compiles at
+    all -- see docs/findings/10-register-rule.md for the full sweep and
+    why this floor matters for the flip result.
+    """
+    shape = x.shape
+    x_flat = x.contiguous().reshape(-1, shape[-1])
+    m, dim = x_flat.shape
+    hidden_dim = w1.shape[0]
+    w1, w2 = w1.contiguous(), w2.contiguous()
+    out = torch.empty_like(x_flat)
+    grid = lambda meta: (triton.cdiv(m, meta["BLOCK_M"]),)
+    _mlp_fused_kernel[grid](
+        x_flat, w1, b1, w2, b2, out,
+        m, dim, hidden_dim,
+        x_flat.stride(0), x_flat.stride(1),
+        w1.stride(0), w1.stride(1),
+        w2.stride(0), w2.stride(1),
+        out.stride(0), out.stride(1),
+        BLOCK_M=16,
+        BLOCK_D=triton.next_power_of_2(dim),
+        BLOCK_H=16,
+        num_warps=8, num_stages=1)
+    return out.reshape(shape)

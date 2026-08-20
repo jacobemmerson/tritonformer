@@ -131,3 +131,19 @@ traffic, same correctness), but still loses to cuBLAS by more than 2x,
 and the epilogue's +40 register cost is the first concrete evidence that
 further fusion (attention, the second MLP projection) will keep pushing
 register pressure up before it ever threatens to spill.
+
+> **Correction (Experiment 4, 2026-08-18):** the win reported above (+9-11%
+> at batch >= 8) is for the **naive, untuned** kernels only, and remains the
+> correct record of what was measured at that tuning level.
+> `docs/findings/07-retuning.md` found this **reverses once both the
+> composed and fused kernels are autotuned**: the tuned composed arm is
+> 4.7-13.8% faster than the tuned fused arm, verified on unthrottled data,
+> with the effect growing with batch — the opposite of what measurement
+> noise would produce. Mechanism: the autotuned fused kernel
+> (`_linear_gelu_tuned_kernel`) is forced into a smaller `BLOCK_M` than the
+> autotuned composed kernel (`_linear_tuned_kernel`) because it must also
+> hold the GeLU epilogue's intermediate terms live alongside the matmul
+> accumulator, which shrinks the autotune search's viable large-tile
+> region — the same register cost identified in this document, now shown
+> to bind the *tuned* search space too. See `07-retuning.md` for the full
+> verification.
