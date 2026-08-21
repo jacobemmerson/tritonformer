@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="588" viewBox="0 0 1020 588" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" role="img" aria-label="Fusion ladder chart: LayerNorm plus residual add is 22 to 31 percent faster; Linear plus GeLU epilogue naive is 7 to 14 percent faster; GeLU alone shows no change; Linear plus GeLU epilogue tuned is 9 to 13 percent slower; flash-style attention is 1.49 to 2.24 times slower; the full fused transformer block is 2.22 to 2.61 times slower; the whole-MLP mega-kernel is 3.10 to 3.83 times slower.">
+  <style>
+    .viz {
+      --surface:      #fcfcfb;
+      --text-primary: #0b0b0b;
+      --text-secondary: #52514e;
+      --text-muted:   #898781;
+      --gridline:     #e1e0d9;
+      --baseline:     #c3c2b7;
+      --blue:         #2a78d6;
+      --red:          #e34948;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .viz {
+        --surface:      #1a1a19;
+        --text-primary: #ffffff;
+        --text-secondary: #c3c2b7;
+        --text-muted:   #898781;
+        --gridline:     #2c2c2a;
+        --baseline:     #383835;
+        --blue:         #3987e5;
+        --red:          #e66767;
+      }
+    }
+    :root[data-theme="dark"] .viz {
+      --surface:      #1a1a19;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:   #898781;
+      --gridline:     #2c2c2a;
+      --baseline:     #383835;
+      --blue:         #3987e5;
+      --red:          #e66767;
+    }
+    .viz text { fill: var(--text-primary); }
+    .kernel-label { fill: var(--text-primary); font-size: 14px; text-anchor: end; }
+    .value-label { fill: var(--text-secondary); font-size: 13px; }
+    .tick-label { fill: var(--text-muted); font-size: 12px; text-anchor: middle; }
+    .title { fill: var(--text-primary); font-size: 20px; font-weight: 600; }
+    .subtitle { fill: var(--text-secondary); font-size: 13px; }
+    .caption { fill: var(--text-muted); font-size: 12px; }
+    .legend-label { fill: var(--text-secondary); font-size: 12px; }
+  </style>
+
+  <g class="viz">
+    <rect x="0" y="0" width="1020" height="588" fill="var(--surface)" />
+
+    <text x="20" y="30" class="title">Fusion ladder: win or loss vs. the unfused kernel(s)</text>
+    <text x="20" y="50" class="subtitle">GTX 1650 Ti, latency ratio across batch 1&#8211;512. Naive Triton unless marked "tuned".</text>
+
+    <!-- legend -->
+    <rect x="800" y="22" width="14" height="14" rx="3" fill="var(--blue)" />
+    <text x="820" y="33" class="legend-label">faster</text>
+    <rect x="900" y="22" width="14" height="14" rx="3" fill="var(--red)" />
+    <text x="920" y="33" class="legend-label">slower</text>
+
+    <!-- gridlines -->
+    <g stroke="var(--gridline)" stroke-width="1">
+      <line x1="280" y1="86" x2="280" y2="534" />
+      <line x1="440" y1="86" x2="440" y2="534" />
+      <line x1="520" y1="86" x2="520" y2="534" />
+      <line x1="600" y1="86" x2="600" y2="534" />
+      <line x1="680" y1="86" x2="680" y2="534" />
+      <line x1="760" y1="86" x2="760" y2="534" />
+      <line x1="840" y1="86" x2="840" y2="534" />
+    </g>
+    <!-- baseline (0%) -->
+    <line x1="360" y1="86" x2="360" y2="534" stroke="var(--baseline)" stroke-width="1.5" />
+
+    <!-- row 1: LayerNorm + residual add -->
+    <text x="270" y="122" class="kernel-label">LayerNorm + residual add</text>
+    <path d="M 360 106 L 321.6 106 A 4 4 0 0 0 317.6 110 L 317.6 126 A 4 4 0 0 0 321.6 130 L 360 130 Z" fill="var(--blue)" />
+    <text x="368" y="122" class="value-label">22&#8211;31% faster</text>
+
+    <!-- row 2: Linear + GeLU epilogue (naive) -->
+    <text x="270" y="186" class="kernel-label">Linear + GeLU epilogue (naive)</text>
+    <path d="M 360 170 L 347.2 170 A 4 4 0 0 0 343.2 174 L 343.2 190 A 4 4 0 0 0 347.2 194 L 360 194 Z" fill="var(--blue)" />
+    <text x="368" y="186" class="value-label">7&#8211;14% faster</text>
+
+    <!-- row 3: GeLU alone (no fusion) -->
+    <text x="270" y="250" class="kernel-label">GeLU alone (no fusion)</text>
+    <circle cx="360" cy="250" r="5" fill="var(--text-muted)" />
+    <text x="372" y="254" class="value-label">no change (0&#8211;5%, noise)</text>
+
+    <!-- row 4: Linear + GeLU epilogue (tuned) -->
+    <text x="270" y="314" class="kernel-label">Linear + GeLU epilogue (tuned)</text>
+    <path d="M 360 298 L 373.6 298 A 4 4 0 0 1 377.6 302 L 377.6 318 A 4 4 0 0 1 373.6 322 L 360 322 Z" fill="var(--red)" />
+    <text x="385.6" y="314" class="value-label">9&#8211;13% slower</text>
+
+    <!-- row 5: Flash-style attention -->
+    <text x="270" y="378" class="kernel-label">Flash-style attention</text>
+    <path d="M 360 362 L 494.4 362 A 4 4 0 0 1 498.4 366 L 498.4 382 A 4 4 0 0 1 494.4 386 L 360 386 Z" fill="var(--red)" />
+    <text x="506.4" y="378" class="value-label">1.49&#8211;2.24x slower</text>
+
+    <!-- row 6: Full fused transformer block -->
+    <text x="270" y="442" class="kernel-label">Full fused transformer block</text>
+    <path d="M 360 426 L 582.4 426 A 4 4 0 0 1 586.4 430 L 586.4 446 A 4 4 0 0 1 582.4 450 L 360 450 Z" fill="var(--red)" />
+    <text x="594.4" y="442" class="value-label">2.22&#8211;2.61x slower</text>
+
+    <!-- row 7: Whole-MLP mega-kernel -->
+    <text x="270" y="506" class="kernel-label">Whole-MLP mega-kernel</text>
+    <path d="M 360 490 L 750.4 490 A 4 4 0 0 1 754.4 494 L 754.4 510 A 4 4 0 0 1 750.4 514 L 360 514 Z" fill="var(--red)" />
+    <text x="762.4" y="506" class="value-label">3.10&#8211;3.83x slower</text>
+
+    <!-- axis -->
+    <line x1="280" y1="534" x2="840" y2="534" stroke="var(--baseline)" stroke-width="1" />
+    <text x="280" y="550" class="tick-label">-50%</text>
+    <text x="360" y="550" class="tick-label">0%</text>
+    <text x="440" y="550" class="tick-label">50%</text>
+    <text x="520" y="550" class="tick-label">100%</text>
+    <text x="600" y="550" class="tick-label">150%</text>
+    <text x="680" y="550" class="tick-label">200%</text>
+    <text x="760" y="550" class="tick-label">250%</text>
+    <text x="840" y="550" class="tick-label">300%</text>
+
+    <text x="20" y="574" class="caption">0% = the unfused kernel(s) it replaces. Ranges span batch 1 through batch 512; see README for exact per-batch numbers.</text>
+  </g>
+</svg>
