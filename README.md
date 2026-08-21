@@ -14,6 +14,8 @@ a) Implement kernels: LayerNorm, Linear, GeLU, Softmax
 b) Fuse them along a ladder from single-op to a fully fused transformer block
 c) Measure the tradeoffs, backed by latency and hardware-counter data
 
+![Fusion ladder: latency of each fused or tuned kernel relative to the unfused kernel(s) it replaces, on the GTX 1650 Ti](assets/fusion-ladder.svg)
+
 ## The fusion ladder, measured
 
 Every row is naive (untuned) Triton against the matching PyTorch op,
