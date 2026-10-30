@@ -3,8 +3,8 @@
 A small vision transformer forward pass (CIFAR-10 size: 32x32 input, patch 4, dim 192, depth 6,
 3 heads, MLP 768) written in Triton, used to measure when kernel fusion helps and when it hurts.
 
-- GTX 1650 Ti (Turing, sm_75, 16 SMs, ~1 MB L2, no tensor cores): the original card. Gone since
-  2026-10; its rows are kept, not regenerated.
+- GTX 1650 Ti (Turing, sm_75, 16 SMs, ~1 MB L2, no tensor cores): the original card. Away for most of
+  2026-10; back on 2026-10-30, when the attention follow-up arms were measured on it.
 - NVIDIA L4 (Ada, sm_89, 58 SMs, 48 MB L2, tensor cores) on Modal: replication and all later work.
 - Baselines: the matching eager PyTorch op, the unfused Triton kernels, and `torch.compile`.
 
@@ -12,7 +12,9 @@ A small vision transformer forward pass (CIFAR-10 size: 32x32 input, patch 4, di
 
 - **A tiled flash attention kernel beats eager PyTorch at every batch size on the L4**, 2.3x at
   batch 1 and 1.15x at batch 512. It is the first Triton kernel in this project to do so, and the
-  first fusion other than LayerNorm + residual to beat its own unfused arm.
+  first fusion other than LayerNorm + residual to beat its own unfused arm. **On the GTX 1650 Ti the
+  same kernel is 2.0-2.4x slower than PyTorch from batch 8 up**: without tensor cores it runs at
+  99.6% of shared-memory peak, the same wall as the MLP kernel.
 - **The earlier attention loss was mostly cuBLAS versus Triton GEMM, not fusion.** On these 64x64
   problems a plain Triton batched matmul beats cuBLAS's 128x128 sgemm by 12-33%, and the original
   single-tile flash kernel spent 146 MB per call on register spills.
@@ -54,6 +56,39 @@ Median latency in ms:
   problem.
 - The torch baseline is the unfused eager path, not `F.scaled_dot_product_attention`.
 
+The same sweep on the GTX 1650 Ti (2026-10-30, unlocked clocks, no row flagged), median latency in ms:
+
+| batch | torch | composed (cuBLAS) | composed (Triton GEMM) | flash, single tile | flash, tiled |
+|---|---|---|---|---|---|
+| 1 | 0.020 | 0.021 | 0.021 | 0.031 | **0.018** |
+| 8 | **0.037** | 0.047 | 0.046 | 0.077 | 0.074 |
+| 32 | **0.118** | 0.149 | 0.154 | 0.246 | 0.274 |
+| 128 | **0.464** | 0.596 | 0.584 | 0.992 | 1.092 |
+| 512 | **1.821** | 2.380 | 2.300 | 4.042 | 4.386 |
+
+- Tiled flash wins only at batch 1 (9% faster than PyTorch, 15% faster than the same-GEMM composed
+  arm). From batch 8 up it is 1.6-1.9x slower than the same-GEMM composed arm; against the
+  single-tile kernel it was meant to fix it is 4% faster at batch 8 and 9-12% slower at 32-512.
+- The tiled kernel does not spill on Turing either: 71 registers, no local-memory traffic, 7 blocks
+  per SM by registers. It is bound by shared memory instead: 99.6% of L1TEX peak, 11.0M bank
+  conflicts against 2.8M for the single-tile kernel, top stalls `mio_throttle` 14.8 and
+  `short_scoreboard` 10.4, SM throughput 12.9%. The Triton batched matmul sits on the same wall
+  (98.6% of L1TEX, 2.8M conflicts), but 16-row query tiles re-stage K and V four times per head:
+  15.8M shared-memory wavefronts against 7.0M for the two GEMMs the kernel replaces.
+- Wider query tiles trade that wall for the register wall. A one-off `BLOCK_M` sweep (same harness,
+  not in `latency.csv`; counters at batch 128):
+
+  | `BLOCK_M` | registers | shared/block | blocks/SM | shared wavefronts | ncu time | vs composed (Triton GEMM), batch 8-512 |
+  |---|---|---|---|---|---|---|
+  | 16 | 71 | 20 KB | 3 | 15.8M | 1.54 ms | 1.6-1.9x slower |
+  | 32 | 80 | 24 KB | 2 | 9.0M | 0.92 ms | 1.29x slower at 8, 1.09-1.13x at 32-512 |
+  | 64 | 255, 6.9 MB spills | 33 KB | 1 | 8.3M | 0.98 ms | 1.25-1.42x slower |
+
+  `BLOCK_M=32` is the best tile on Turing and beats PyTorch only at batch 1 (0.016 vs 0.020 ms).
+  Between the two walls there is no tile that beats the unfused Triton GEMMs there.
+- Triton GEMM vs cuBLAS in the composed arm: 0.97-1.03x, parity. The 1650 Ti's cuBLAS already picks
+  a 64x64 tile (`volta_sgemm_64x64`), so the L4's tile-size advantage does not exist here.
+
 ## MLP
 
 Extended Nsight Compute counters at batch 128 on the L4, cold cache:
@@ -90,6 +125,18 @@ and with `--cache-control none` (`counters_cache_control_none.csv`):
 - Warm numbers are a lower bound on the flush's effect, not the `do_bench` loop: ncu still restores
   device memory between replay passes. The composed MLP's second kernel still reads 32 MB warm.
 
+The same attention arms on the GTX 1650 Ti, batch 128:
+
+| arm | cold | warm |
+|---|---|---|
+| attention, composed (cuBLAS) | 76.6 MB | 77.6 MB |
+| attention, composed (Triton GEMM) | 49.6 MB | 50.3 MB |
+| attention, flash single tile | 48.0 MB | 48.2 MB |
+| attention, flash tiled | 25.1 MB | 25.3 MB |
+
+- On a 1 MB L2 the flush changes nothing: cold and warm agree within 2% on every arm, and the tiled
+  kernel's 67% traffic cut against cuBLAS buys no time.
+
 ## Ladder
 
 Each fused kernel against the unfused Triton kernels it replaces, on the GTX 1650 Ti unless noted:
@@ -103,7 +150,7 @@ Each fused kernel against the unfused Triton kernels it replaces, on the GTX 165
 | Linear + GeLU epilogue, naive | 7-14% faster | DRAM traffic down 33% |
 | Linear + GeLU epilogue, both autotuned | 9-13% slower | fused kernel needs a smaller tile |
 | Flash attention, single tile | 1.49-1.70x slower | 255 registers, spills, one block per SM |
-| Flash attention, tiled (L4 only) | 3-35% faster than the same-GEMM composed arm | 60 registers, no spills, 4x the grid |
+| Flash attention, tiled | 3-35% faster than the same-GEMM composed arm on L4; 1.6-1.9x slower on 1650 Ti (batch 8+) | no spills on either; on Turing 99.6% of shared-memory peak, 4x the bank conflicts |
 | Whole-MLP kernel | 3.1-3.8x slower | shared-memory roofline, one block per SM |
 | Full fused block | slower | inherits the attention and MLP losses |
 
@@ -141,7 +188,14 @@ been wired into the block.
 5. **`tl.dot` defaults to TF32 on tensor-core GPUs.** 70 of 153 tests fail on the L4 until
    `TRITON_F32_DEFAULT=ieee` is set. At matched precision cuBLAS beats Triton 36-90% at the model's
    GEMM shapes.
-6. **Not explained:** the single-tile flash kernel winning at batch 512; the MLP's 81.4% cold traffic
+6. **Every Triton `tl.dot` kernel on Turing is at the shared-memory roofline.** The batched matmul
+   runs at 98.6% of L1TEX peak and the tiled flash kernel at 99.6%, against 62-73% for cuBLAS's
+   sgemm with 40x fewer bank conflicts. Fused attention is pinned between that wall and the register
+   wall: 16-row tiles move 2.3x the shared-memory bytes of the GEMMs they replace, 64-row tiles are
+   back at 255 registers with spills and one block per SM, and the best tile between them still
+   loses 9-29% to the composed arm. The L4 win depends on tensor cores taking `tl.dot` operands out
+   of the shared-memory path.
+7. **Not explained:** the single-tile flash kernel winning at batch 512; the MLP's 81.4% cold traffic
    drop exceeding the arithmetic (consistent with the flush); the fully fused model beating unfused
    at batch 1 and 8 on the L4.
 
