@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="588" viewBox="0 0 1020 588" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" role="img" aria-label="Attention on the L4: latency of four Triton attention arms relative to eager PyTorch across batch 1 to 512. The tiled flash kernel is faster than PyTorch at every batch, 2.3x at batch 1 and 1.15x at batch 512. The single-tile flash kernel is slower at batch 32 and 128. The composed arm on cuBLAS is slower at every batch above 1; the same arm on the Triton GEMM is faster at every batch.">
+  <style>
+    .viz { --surface: #fcfcfb; --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781; --gridline: #e1e0d9; --baseline: #898781;
+           --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .viz { --surface: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781; --gridline: #2c2c2a; --baseline: #898781;
+           --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; }
+    }
+    :root[data-theme="dark"] .viz { --surface: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781; --gridline: #2c2c2a; --baseline: #898781;
+           --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; }
+    .viz text { fill: var(--text-primary); }
+    .title { font-size: 20px; font-weight: 600; }
+    .subtitle { fill: var(--text-secondary); font-size: 13px; }
+    .tick-label { fill: var(--text-muted); font-size: 12px; }
+    .series-label { fill: var(--text-secondary); font-size: 13px; text-anchor: end; }
+    .legend-label { fill: var(--text-secondary); font-size: 12px; }
+    .caption { fill: var(--text-muted); font-size: 12px; }
+    .baseline-label { fill: var(--text-secondary); font-size: 12px; }
+  </style>
+  <g class="viz">
+    <rect x="0" y="0" width="1020" height="588" fill="var(--surface)" />
+    <text x="20" y="30" class="title">Attention on the L4: latency relative to eager PyTorch</text>
+    <text x="20" y="50" class="subtitle">Median of 30 interleaved reps, IEEE fp32, heads 3, seq 64, head dim 64. Below 1.0 is faster than PyTorch.</text>
+    <rect x="20" y="66" width="14" height="3" rx="1.5" fill="var(--s1)" />
+    <text x="40" y="71" class="legend-label">composed (cuBLAS GEMM)</text>
+    <rect x="218" y="66" width="14" height="3" rx="1.5" fill="var(--s2)" />
+    <text x="238" y="71" class="legend-label">composed (Triton GEMM)</text>
+    <rect x="416" y="66" width="14" height="3" rx="1.5" fill="var(--s3)" />
+    <text x="436" y="71" class="legend-label">flash, single tile</text>
+    <rect x="586" y="66" width="14" height="3" rx="1.5" fill="var(--s4)" />
+    <text x="606" y="71" class="legend-label">flash, tiled</text>
+    <g stroke="var(--gridline)" stroke-width="1">
+      <line x1="210" y1="500.0" x2="900" y2="500.0" />
+      <line x1="210" y1="433.3" x2="900" y2="433.3" />
+      <line x1="210" y1="366.7" x2="900" y2="366.7" />
+      <line x1="210" y1="233.3" x2="900" y2="233.3" />
+      <line x1="210" y1="166.7" x2="900" y2="166.7" />
+      <line x1="210" y1="100.0" x2="900" y2="100.0" />
+    </g>
+    <text x="908" y="504.0" class="tick-label">0.4x</text>
+    <text x="908" y="437.3" class="tick-label">0.6x</text>
+    <text x="908" y="370.7" class="tick-label">0.8x</text>
+    <text x="908" y="304.0" class="tick-label">1.0x</text>
+    <text x="908" y="237.3" class="tick-label">1.2x</text>
+    <text x="908" y="170.7" class="tick-label">1.4x</text>
+    <text x="908" y="104.0" class="tick-label">1.6x</text>
+    <line x1="210" y1="300.0" x2="900" y2="300.0" stroke="var(--baseline)" stroke-width="1.5" stroke-dasharray="6 4" />
+    <text x="908" y="290.0" class="baseline-label">eager PyTorch</text>
+    <text x="230.0" y="524" class="tick-label" text-anchor="middle">batch 1</text>
+    <text x="392.5" y="524" class="tick-label" text-anchor="middle">batch 8</text>
+    <text x="555.0" y="524" class="tick-label" text-anchor="middle">batch 32</text>
+    <text x="717.5" y="524" class="tick-label" text-anchor="middle">batch 128</text>
+    <text x="880.0" y="524" class="tick-label" text-anchor="middle">batch 512</text>
+    <polyline points="230.0,300.0 392.5,291.2 555.0,264.1 717.5,258.1 880.0,243.2" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" />
+    <polyline points="230.0,411.1 392.5,378.9 555.0,310.3 717.5,357.8 880.0,330.8" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" />
+    <polyline points="230.0,333.3 392.5,343.9 555.0,115.4 717.5,240.0 880.0,353.0" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" />
+    <polyline points="230.0,488.9 392.5,440.3 555.0,325.6 717.5,365.1 880.0,343.6" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" />
+    <circle cx="230.0" cy="300.0" r="5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="392.5" cy="291.2" r="5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="555.0" cy="264.1" r="5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="717.5" cy="258.1" r="5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="880.0" cy="243.2" r="5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="230.0" cy="411.1" r="5" fill="var(--s2)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="392.5" cy="378.9" r="5" fill="var(--s2)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="555.0" cy="310.3" r="5" fill="var(--s2)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="717.5" cy="357.8" r="5" fill="var(--s2)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="880.0" cy="330.8" r="5" fill="var(--s2)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="230.0" cy="333.3" r="5" fill="var(--s3)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="392.5" cy="343.9" r="5" fill="var(--s3)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="555.0" cy="115.4" r="5" fill="var(--s3)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="717.5" cy="240.0" r="5" fill="var(--s3)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="880.0" cy="353.0" r="5" fill="var(--s3)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="230.0" cy="488.9" r="5" fill="var(--s4)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="392.5" cy="440.3" r="5" fill="var(--s4)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="555.0" cy="325.6" r="5" fill="var(--s4)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="717.5" cy="365.1" r="5" fill="var(--s4)" stroke="var(--surface)" stroke-width="2" />
+    <circle cx="880.0" cy="343.6" r="5" fill="var(--s4)" stroke="var(--surface)" stroke-width="2" />
+    <text x="214" y="304.0" class="series-label">composed (cuBLAS GEMM)  1.00x</text>
+    <text x="214" y="415.1" class="series-label">composed (Triton GEMM)  0.67x</text>
+    <text x="214" y="337.3" class="series-label">flash, single tile  0.90x</text>
+    <text x="214" y="492.9" class="series-label">flash, tiled  0.43x</text>
+    <text x="20" y="574" class="caption">bench/results/latency.csv, NVIDIA L4 on Modal, 2026-10-30, clocks unlocked (2040 MHz at batch 1, 1365 MHz at batch 512). Labels show the batch 1 ratio.</text>
+  </g>
+</svg>
