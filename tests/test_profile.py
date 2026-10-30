@@ -1,7 +1,7 @@
 import pytest
 
-from bench.profile import (METRICS, base_kernel_name, parse_ncu_csv,
-                           profile_kernel)
+from bench.profile import (METRICS, ROOFLINE_METRICS, base_kernel_name,
+                           parse_ncu_csv, profile_kernel)
 
 TWO_KERNEL_SAMPLE = (
     '"ID","Kernel Name","Metric Name","Metric Unit","Metric Value"\n'
@@ -205,3 +205,66 @@ def test_profile_kernel_with_only_expected_kernels_skips_identity_check(monkeypa
     rows = profile_kernel("bench.run_x", "x", "triton", 128, "float32",
                           launch_count=1, expected_kernels=1)
     assert len(rows) == 1
+
+
+def _capture_command(monkeypatch, stdout: str) -> dict:
+    """Records the ncu command line. The patch lands on the shared subprocess
+    module, so commit_sha()'s later `git rev-parse` goes through it too and
+    must not overwrite what was captured."""
+    seen = {}
+
+    def fake_run(command, **kwargs):
+        if command[0] == "ncu":
+            seen["command"] = command
+        return FakeCompletedProcess(stdout)
+
+    monkeypatch.setattr("bench.profile.subprocess.run", fake_run)
+    return seen
+
+
+def _flag_value(command: list[str], flag: str) -> str:
+    return command[command.index(flag) + 1]
+
+
+def test_cache_control_env_adds_flag(monkeypatch):
+    """ncu flushes every cache between replay passes unless told otherwise, so
+    its DRAM bytes are cold-cache numbers while do_bench latency is warm. The
+    knob mirrors TRITONFORMER_NCU_CLOCK_CONTROL: unset means ncu's default."""
+    seen = _capture_command(monkeypatch, ONE_KERNEL_SAMPLE)
+    monkeypatch.setenv("TRITONFORMER_NCU_CACHE_CONTROL", "none")
+    profile_kernel("bench.run_x", "x", "triton", 128, "float32")
+    assert _flag_value(seen["command"], "--cache-control") == "none"
+
+
+def test_cache_control_unset_leaves_ncu_default(monkeypatch):
+    seen = _capture_command(monkeypatch, ONE_KERNEL_SAMPLE)
+    monkeypatch.delenv("TRITONFORMER_NCU_CACHE_CONTROL", raising=False)
+    profile_kernel("bench.run_x", "x", "triton", 128, "float32")
+    assert "--cache-control" not in seen["command"]
+
+
+def test_metrics_argument_selects_metric_set(monkeypatch):
+    seen = _capture_command(monkeypatch, ONE_KERNEL_SAMPLE)
+    profile_kernel("bench.run_x", "x", "triton", 128, "float32",
+                   metrics=ROOFLINE_METRICS)
+    assert _flag_value(seen["command"], "--metrics") == ",".join(ROOFLINE_METRICS)
+
+
+def test_metrics_default_is_base_set(monkeypatch):
+    seen = _capture_command(monkeypatch, ONE_KERNEL_SAMPLE)
+    profile_kernel("bench.run_x", "x", "triton", 128, "float32")
+    assert _flag_value(seen["command"], "--metrics") == ",".join(METRICS)
+
+
+def test_roofline_metrics_extend_base_set():
+    assert set(METRICS) <= set(ROOFLINE_METRICS)
+    assert len(ROOFLINE_METRICS) == len(set(ROOFLINE_METRICS))
+    for name in (
+            "lts__t_bytes.sum",
+            "lts__throughput.avg.pct_of_peak_sustained_elapsed",
+            "dram__throughput.avg.pct_of_peak_sustained_elapsed",
+            "l1tex__throughput.avg.pct_of_peak_sustained_elapsed",
+            "smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio",
+            "launch__occupancy_limit_shared_mem",
+            "launch__occupancy_limit_registers"):
+        assert name in ROOFLINE_METRICS

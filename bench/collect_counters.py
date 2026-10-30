@@ -49,11 +49,12 @@ import json
 import subprocess
 import sys
 
-from bench.profile import (base_kernel_name, profile_kernel,
-                           record_counters)
+from bench.profile import (METRICS, ROOFLINE_METRICS, base_kernel_name,
+                           profile_kernel, record_counters)
 from model.registry import Component, variants
 
 RESULTS_PATH = "bench/results/counters.csv"
+METRIC_SETS = {"base": METRICS, "extended": ROOFLINE_METRICS}
 BATCH = 1
 
 _MEASURE_SCRIPT = """
@@ -178,7 +179,8 @@ def measure_arm(module: str, kernel: str, variant: str, batch: int) -> dict:
 
 
 def capture_arm(module: str, kernel: str, variant: str, batch: int,
-                dtype: str = "float32") -> list[dict]:
+                dtype: str = "float32",
+                metrics: list[str] | None = None) -> list[dict]:
     """Counters for exactly one steady-state call of one per-kernel arm.
 
     The window is `setup + ARM_WARMUP_CALLS * stride` launches skipped, then
@@ -196,7 +198,8 @@ def capture_arm(module: str, kernel: str, variant: str, batch: int,
     return profile_kernel(module, kernel, variant, batch, dtype,
                           launch_skip=skip, launch_count=measured["stride"],
                           expected_kernels=measured["distinct"],
-                          expected_kernel_names=set(measured["names"]))
+                          expected_kernel_names=set(measured["names"]),
+                          metrics=metrics)
 
 
 def main() -> None:
@@ -206,13 +209,18 @@ def main() -> None:
         "--arm", action="append", default=[], metavar="MODULE:KERNEL:VARIANT:BATCH",
         help="profile one per-kernel arm instead of the vit_forward grid; "
              "repeatable, e.g. bench.run_mlp:mlp:triton_fused:128")
+    parser.add_argument(
+        "--metrics", choices=sorted(METRIC_SETS), default="base",
+        help="'extended' adds the L2/L1TEX/stall/occupancy-limit metrics in "
+             "bench.profile.ROOFLINE_METRICS (more ncu replay passes per kernel)")
     args = parser.parse_args()
 
     if args.arm:
         total = 0
         for spec in args.arm:
             module, kernel, variant, batch = spec.split(":")
-            captured = capture_arm(module, kernel, variant, int(batch))
+            captured = capture_arm(module, kernel, variant, int(batch),
+                                   metrics=METRIC_SETS[args.metrics])
             record_counters(captured, args.out)
             total += len(captured)
             print(f"  wrote {len(captured)} rows for {kernel}/{variant}")

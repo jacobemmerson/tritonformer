@@ -38,6 +38,14 @@ here is unfused by construction, four separate kernels) or against
 CUTLASS kernel on this sm_75 card -- `triton_flash` may legitimately
 lose to it on latency; see docs/findings/04-flash-attention.md).
 
+`triton_composed_bmm` and `triton_flash_tiled` are the follow-up to the
+external review (docs/superpowers/specs/2026-10-29-profile-followup-review.md):
+the first is `triton_composed` with its two cuBLAS GEMMs replaced by the
+Triton `bmm` kernel, so that fusion is measured against the same GEMM
+implementation; the second is the properly tiled flash kernel (16 query
+rows per program, key/value tiles of 32) that the single-tile `_flash_kernel`
+is not.
+
 `triton_qkv_unfused` is the honest baseline for the fusion claim: the
 same qkv_w/qkv_b split into three [D, D] slices and projected with three
 separate Triton `linear` calls (mirroring what an unfused QKV rung would
@@ -53,7 +61,8 @@ import torch
 from bench.runner import RunnerSpec, main
 from model.baseline.layers import attention as attention_torch
 from model.kernels.attention import attention_composed as attention_triton
-from model.kernels.attention import attention_flash, attention_qkv_fused
+from model.kernels.attention import (attention_composed_bmm, attention_flash,
+                                     attention_flash_tiled, attention_qkv_fused)
 from model.kernels.linear import linear
 
 HEADS, SEQ, HEAD_DIM = 3, 64, 64
@@ -83,6 +92,8 @@ def _arms_for_batch(batch: int, dtype: torch.dtype):
         "torch": lambda: attention_torch(q, k, v, SCALE),
         "triton_composed": lambda: attention_triton(q, k, v, SCALE),
         "triton_flash": lambda: attention_flash(q, k, v, SCALE),
+        "triton_composed_bmm": lambda: attention_composed_bmm(q, k, v, SCALE),
+        "triton_flash_tiled": lambda: attention_flash_tiled(q, k, v, SCALE),
         "triton_qkv_fused": lambda: attention_qkv_fused(x, qkv_w, qkv_b, HEADS, SCALE),
         "triton_qkv_unfused": lambda: _qkv_unfused(x, qkv_w, qkv_b),
     }
