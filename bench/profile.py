@@ -44,6 +44,43 @@ METRICS = [
     "l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum",
 ]
 
+# Opt-in superset for the roofline/stall question (which memory level a kernel
+# actually sits on, and what its warps wait for). Opt-in rather than the new
+# default because every extra metric family costs ncu more replay passes per
+# kernel, and because counters.csv readers that count rows per capture (seven
+# per kernel) would silently misread a capture taken with this set.
+ROOFLINE_METRICS = METRICS + [
+    "gpu__time_duration.sum",
+    "dram__throughput.avg.pct_of_peak_sustained_elapsed",
+    "lts__t_bytes.sum",
+    "lts__throughput.avg.pct_of_peak_sustained_elapsed",
+    "l1tex__t_bytes.sum",
+    "l1tex__throughput.avg.pct_of_peak_sustained_elapsed",
+    "sm__throughput.avg.pct_of_peak_sustained_elapsed",
+    "sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active",
+    "sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active",
+    "l1tex__data_pipe_lsu_wavefronts_mem_shared.sum",
+    "l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum",
+    "smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio",
+    "smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio",
+    "smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio",
+    "smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio",
+    "smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio",
+    "smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio",
+    "smsp__average_warps_issue_stalled_wait_per_issue_active.ratio",
+    "smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio",
+    "smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio",
+    "launch__shared_mem_per_block_static",
+    "launch__shared_mem_per_block_dynamic",
+    "launch__occupancy_limit_shared_mem",
+    "launch__occupancy_limit_registers",
+    "launch__occupancy_limit_warps",
+    "launch__occupancy_limit_blocks",
+    "launch__grid_size",
+    "launch__block_size",
+    "launch__waves_per_multiprocessor",
+]
+
 COUNTER_COLUMNS = [
     "timestamp", "commit_sha", "gpu", "kernel", "variant", "batch", "dtype",
     "kernel_name", "metric", "unit", "value",
@@ -101,8 +138,18 @@ def profile_kernel(module: str, kernel: str, variant: str, batch: int,
                    dtype: str, launch_skip: int = 5,
                    launch_count: int = 1,
                    expected_kernels: int | None = None,
-                   expected_kernel_names: set[str] | None = None) -> list[dict]:
+                   expected_kernel_names: set[str] | None = None,
+                   metrics: list[str] | None = None) -> list[dict]:
     """Profile a single steady-state launch.
+
+    TRITONFORMER_NCU_CACHE_CONTROL, when set, is passed as `--cache-control`.
+    ncu's default (`all`) flushes every GPU cache before each replay pass, so
+    the DRAM byte counts it reports are cold-cache numbers, whereas the latency
+    in latency.csv is measured warm in a do_bench loop. `none` leaves the caches
+    as the previous pass left them, which is closer to the timed condition on a
+    card whose L2 can hold the working set (48 MB on the L4). Unset keeps ncu's
+    default, which is what every row in counters.csv was captured under; rows
+    taken with `none` belong in a separate file, not beside them.
 
     launch_skip avoids the cold first launch, whose counters reflect
     autotuning and cache-cold behaviour rather than steady state.
@@ -129,12 +176,14 @@ def profile_kernel(module: str, kernel: str, variant: str, batch: int,
     (e.g. torch's templated elementwise kernel names).
     """
     clock_control = os.environ.get("TRITONFORMER_NCU_CLOCK_CONTROL")
+    cache_control = os.environ.get("TRITONFORMER_NCU_CACHE_CONTROL")
     command = [
         "ncu", "--csv", "--target-processes", "all",
         *(["--clock-control", clock_control] if clock_control else []),
+        *(["--cache-control", cache_control] if cache_control else []),
         "--launch-skip", str(launch_skip),
         "--launch-count", str(launch_count),
-        "--metrics", ",".join(METRICS),
+        "--metrics", ",".join(metrics if metrics is not None else METRICS),
         sys.executable, "-m", module,
         "--kernel", kernel, "--variant", variant,
         "--batch", str(batch), "--dtype", dtype,
