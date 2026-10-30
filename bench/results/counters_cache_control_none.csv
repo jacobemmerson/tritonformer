@@ -1,0 +1,541 @@
+timestamp,commit_sha,gpu,kernel,variant,batch,dtype,kernel_name,metric,unit,value
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,dram__bytes_read.sum,byte,7233152
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,dram__bytes_write.sum,byte,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,35.94
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,gpu__time_duration.sum,ns,67232
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,196608
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,2834474
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,l1tex__t_bytes.sum,byte,18874368
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,l1tex__t_sector_hit_rate.pct,%,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,53.48
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,launch__block_size,,256
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,launch__grid_size,,384
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,launch__occupancy_limit_registers,block,2
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,launch__occupancy_limit_shared_mem,block,3
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,launch__occupancy_limit_warps,block,6
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,launch__registers_per_thread,register/thread,118
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,launch__shared_mem_per_block_dynamic,byte/block,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,launch__shared_mem_per_block_static,byte/block,16896
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,launch__waves_per_multiprocessor,,3.31
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,lts__t_bytes.sum,byte,19024032
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,16.57
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,49.55
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,64.16
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,sm__warps_active.avg.pct_of_peak_sustained_active,%,29.98
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,0.39
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.01
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,0.17
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.09
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,0.25
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.07
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,1.35
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,0.02
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_tn,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,1.31
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",dram__bytes_read.sum,byte,7129728
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",dram__bytes_write.sum,byte,6400
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",dram__throughput.avg.pct_of_peak_sustained_elapsed,%,90.55
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",gpu__time_duration.sum,ns,26336
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,6144
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",l1tex__t_bytes.sum,byte,12582912
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",l1tex__t_sector_hit_rate.pct,%,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,51.23
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",launch__block_size,,128
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",launch__grid_size,,1536
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",launch__occupancy_limit_blocks,block,24
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",launch__occupancy_limit_registers,block,16
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",launch__occupancy_limit_shared_mem,block,32
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",launch__occupancy_limit_warps,block,12
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",launch__registers_per_thread,register/thread,28
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",launch__shared_mem_per_block_dynamic,byte/block,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",launch__waves_per_multiprocessor,,2.21
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",lts__t_bytes.sum,byte,12638688
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",lts__throughput.avg.pct_of_peak_sustained_elapsed,%,20.06
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,0.93
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",sm__throughput.avg.pct_of_peak_sustained_elapsed,%,7.01
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",sm__warps_active.avg.pct_of_peak_sustained_active,%,17.81
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,19.28
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,58.54
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.35
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,17.57
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.68
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,0.75
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,9.26
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,"void at::vectorized_elementwise_kernel<4, at::AUnaryFunctor<float, float, float, at::MulFunctor<float>>, std::array<char *, 2>>(int, T2, T3)",smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,2.43
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,dram__bytes_read.sum,byte,6785280
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,dram__bytes_write.sum,byte,1920
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,48.45
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,gpu__time_duration.sum,ns,46784
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,13260
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,2194861
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,l1tex__t_bytes.sum,byte,18874368
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,l1tex__t_sector_hit_rate.pct,%,33.33
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,88.76
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,launch__block_size,,128
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,launch__grid_size,,24576
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,launch__occupancy_limit_registers,block,21
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,launch__occupancy_limit_shared_mem,block,28
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,launch__occupancy_limit_warps,block,12
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,launch__registers_per_thread,register/thread,18
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,launch__shared_mem_per_block_dynamic,byte/block,8
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,launch__waves_per_multiprocessor,,35.31
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,lts__t_bytes.sum,byte,12659040
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,12.50
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,12.99
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,88.76
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,86.53
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,4.83
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,2.60
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.08
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,3.34
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.10
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,0.85
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,10.81
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,2.46
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,dram__bytes_read.sum,byte,8059648
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,dram__bytes_write.sum,byte,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,40.04
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,gpu__time_duration.sum,ns,67168
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,196608
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,2833864
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,l1tex__t_bytes.sum,byte,18874368
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,l1tex__t_sector_hit_rate.pct,%,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,55.04
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,launch__block_size,,256
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,launch__grid_size,,384
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,launch__occupancy_limit_registers,block,2
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,launch__occupancy_limit_shared_mem,block,3
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,launch__occupancy_limit_warps,block,6
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,launch__registers_per_thread,register/thread,118
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,launch__shared_mem_per_block_dynamic,byte/block,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,launch__shared_mem_per_block_static,byte/block,16640
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,launch__waves_per_multiprocessor,,3.31
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,lts__t_bytes.sum,byte,19049408
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,12.55
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,50.38
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,65.54
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,sm__warps_active.avg.pct_of_peak_sustained_active,%,29.50
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,0.37
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.00
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,0.10
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.09
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,0.22
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.07
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,1.36
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,0.03
+2026-10-30T03:50:52.846864+00:00,bd424a7,NVIDIA L4,attention,triton_composed,128,float32,ampere_sgemm_128x128_nn,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,1.31
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,dram__bytes_read.sum,byte,118016
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,dram__bytes_write.sum,byte,640
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,0.92
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,gpu__time_duration.sum,ns,42912
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,2775612
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,3752501
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__t_bytes.sum,byte,21430272
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,1179648
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,1376256
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__t_sector_hit_rate.pct,%,9.28
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,80.43
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__block_size,,128
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__grid_size,,384
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__occupancy_limit_registers,block,4
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__occupancy_limit_shared_mem,block,5
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__occupancy_limit_warps,block,12
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__registers_per_thread,register/thread,128
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__shared_mem_per_block_dynamic,byte/block,16384
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__waves_per_multiprocessor,,1.66
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,lts__t_bytes.sum,byte,20553472
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,18.49
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,19.10
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,23.23
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,28.88
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,1.42
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.00
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,1.41
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.10
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,5.60
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.03
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,0.82
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,2.39
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,0.28
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,dram__bytes_read.sum,byte,6817408
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,dram__bytes_write.sum,byte,1920
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,48.71
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,gpu__time_duration.sum,ns,46752
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,13601
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,2195067
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,l1tex__t_bytes.sum,byte,18874368
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,l1tex__t_sector_hit_rate.pct,%,33.33
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,88.76
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,launch__block_size,,128
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,launch__grid_size,,24576
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,launch__occupancy_limit_registers,block,21
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,launch__occupancy_limit_shared_mem,block,28
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,launch__occupancy_limit_warps,block,12
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,launch__registers_per_thread,register/thread,18
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,launch__shared_mem_per_block_dynamic,byte/block,8
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,launch__waves_per_multiprocessor,,35.31
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,lts__t_bytes.sum,byte,12645632
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,12.46
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,12.97
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,88.76
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,86.26
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,4.83
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,2.61
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.08
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,3.33
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.10
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,0.85
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,10.83
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_softmax_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,2.46
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,dram__bytes_read.sum,byte,6433152
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,dram__bytes_write.sum,byte,1664
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,79.26
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,gpu__time_duration.sum,ns,27136
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,34440
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,989807
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__t_bytes.sum,byte,18874368
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__t_sector_hit_rate.pct,%,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,54.33
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__block_size,,128
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__grid_size,,384
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__occupancy_limit_registers,block,5
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__occupancy_limit_shared_mem,block,5
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__occupancy_limit_warps,block,12
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__registers_per_thread,register/thread,96
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__shared_mem_per_block_dynamic,byte/block,16384
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,launch__waves_per_multiprocessor,,1.32
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,lts__t_bytes.sum,byte,19056768
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,26.65
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,31.70
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,56.17
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,21.84
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,0.46
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.01
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,0.75
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.17
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,0.27
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.04
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,1.79
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,0.65
+2026-10-30T03:51:07.365517+00:00,bd424a7,NVIDIA L4,attention,triton_composed_bmm,128,float32,_bmm_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,0.22
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,dram__bytes_read.sum,byte,4547712
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,dram__bytes_write.sum,byte,3595392
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,18.34
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,gpu__time_duration.sum,ns,148160
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,2853505
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,4863981
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,l1tex__t_bytes.sum,byte,170852352
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,93978624
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,51707904
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,l1tex__t_sector_hit_rate.pct,%,12.80
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,42.09
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,launch__block_size,,128
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,launch__grid_size,,384
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,launch__occupancy_limit_registers,block,2
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,launch__occupancy_limit_shared_mem,block,2
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,launch__occupancy_limit_warps,block,12
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,launch__registers_per_thread,register/thread,255
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,launch__shared_mem_per_block_dynamic,byte/block,49152
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,launch__waves_per_multiprocessor,,3.31
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,lts__t_bytes.sum,byte,151338816
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,39.34
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,12.14
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,25.45
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,14.86
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,0.53
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.18
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,5.06
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.01
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,2.03
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.04
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,0.30
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,0.58
+2026-10-30T03:51:20.909267+00:00,bd424a7,NVIDIA L4,attention,triton_flash,128,float32,_flash_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,0.57
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,dram__bytes_read.sum,byte,39680
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,dram__bytes_write.sum,byte,1920
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,0.09
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,gpu__time_duration.sum,ns,146880
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,11050493
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,15712955
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,l1tex__t_bytes.sum,byte,62914560
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,l1tex__t_sector_hit_rate.pct,%,0
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,92.60
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,launch__block_size,,128
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,launch__grid_size,,1536
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,launch__occupancy_limit_registers,block,8
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,launch__occupancy_limit_shared_mem,block,4
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,launch__occupancy_limit_warps,block,12
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,launch__registers_per_thread,register/thread,60
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,launch__shared_mem_per_block_dynamic,byte/block,22592
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,launch__waves_per_multiprocessor,,6.62
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,lts__t_bytes.sum,byte,63048416
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,15.71
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,10.98
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,25.66
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,32.29
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,1.18
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.02
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,0.97
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.03
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,4.95
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.02
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,0.45
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,12.26
+2026-10-30T03:51:34.476617+00:00,bd424a7,NVIDIA L4,attention,triton_flash_tiled,128,float32,_flash_tiled_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,0.55
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,dram__bytes_read.sum,byte,850432
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,dram__bytes_write.sum,byte,4842112
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,3.93
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,gpu__time_duration.sum,ns,483680
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,33030466
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,43205018
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,l1tex__t_bytes.sum,byte,177733632
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,l1tex__t_sector_hit_rate.pct,%,0.78
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,76.83
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,launch__block_size,,128
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,launch__grid_size,,1536
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,launch__occupancy_limit_registers,block,2
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,launch__occupancy_limit_shared_mem,block,3
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,launch__occupancy_limit_warps,block,12
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,launch__registers_per_thread,register/thread,196
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,launch__shared_mem_per_block_dynamic,byte/block,16384
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,launch__waves_per_multiprocessor,,13.24
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,lts__t_bytes.sum,byte,176583904
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,13.33
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,19.57
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,23.33
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,16.53
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,0.19
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.01
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,0.56
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.02
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,1.46
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.03
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,0.29
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,3.81
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_gelu_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,0.40
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,dram__bytes_read.sum,byte,32105344
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,dram__bytes_write.sum,byte,3200
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,24.81
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,gpu__time_duration.sum,ns,431744
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,33039086
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,42759112
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,l1tex__t_bytes.sum,byte,157679616
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,l1tex__t_sector_hit_rate.pct,%,0.22
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,87.38
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,launch__block_size,,128
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,launch__grid_size,,384
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,launch__occupancy_limit_registers,block,3
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,launch__occupancy_limit_shared_mem,block,3
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,launch__occupancy_limit_warps,block,12
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,launch__registers_per_thread,register/thread,166
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,launch__shared_mem_per_block_dynamic,byte/block,16384
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,launch__waves_per_multiprocessor,,2.21
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,lts__t_bytes.sum,byte,157533856
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,13.44
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,20.62
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,23.12
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,22.62
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,0.87
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.00
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,0.68
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.02
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,4.31
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.02
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,0.57
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,3.18
+2026-10-30T03:51:48.766892+00:00,bd424a7,NVIDIA L4,mlp,triton_composed,128,float32,_linear_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,0.17
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,dram__bytes_read.sum,byte,726528
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,dram__bytes_write.sum,byte,92160
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,0.09
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,gpu__time_duration.sum,ns,3127936
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,264241152
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,340401152
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,l1tex__t_bytes.sum,byte,629538816
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,l1tex__t_sector_hit_rate.pct,%,1.75
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,93.66
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,launch__block_size,,256
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,launch__grid_size,,512
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,launch__occupancy_limit_registers,block,1
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,launch__occupancy_limit_shared_mem,block,1
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,launch__occupancy_limit_warps,block,6
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,launch__registers_per_thread,register/thread,210
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,launch__shared_mem_per_block_dynamic,byte/block,51200
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,launch__waves_per_multiprocessor,,8.83
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,lts__t_bytes.sum,byte,618712000
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,7.21
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,7.40
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,15.57
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,16.64
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,0.50
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.00
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,0.58
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.05
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,11.24
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.01
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,0.17
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,5.26
+2026-10-30T03:52:02.456347+00:00,bd424a7,NVIDIA L4,mlp,triton_fused,128,float32,_mlp_fused_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,0.60
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",dram__bytes_read.sum,byte,7680
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",dram__bytes_write.sum,byte,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",dram__throughput.avg.pct_of_peak_sustained_elapsed,%,0.25
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",gpu__time_duration.sum,ns,10400
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,6144
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",l1tex__t_bytes.sum,byte,18874368
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",l1tex__t_sector_hit_rate.pct,%,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,44.29
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",launch__block_size,,128
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",launch__grid_size,,1536
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",launch__occupancy_limit_blocks,block,24
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",launch__occupancy_limit_registers,block,12
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",launch__occupancy_limit_shared_mem,block,32
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",launch__occupancy_limit_warps,block,12
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",launch__registers_per_thread,register/thread,38
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",launch__shared_mem_per_block_dynamic,byte/block,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",launch__waves_per_multiprocessor,,2.21
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",lts__t_bytes.sum,byte,18932704
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",lts__throughput.avg.pct_of_peak_sustained_elapsed,%,67.99
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,3.26
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",sm__throughput.avg.pct_of_peak_sustained_elapsed,%,7.46
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",sm__warps_active.avg.pct_of_peak_sustained_active,%,76.92
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,28.22
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,84.92
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.70
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,20.62
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.59
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,1.11
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,9.70
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,"void at::vectorized_elementwise_kernel<4, at::CUDAFunctor_add<float>, std::array<char *, 3>>(int, T2, T3)",smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,2.33
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,dram__bytes_read.sum,byte,8448
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,dram__bytes_write.sum,byte,7296
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,0.28
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,gpu__time_duration.sum,ns,19072
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,14371
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,822226
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,l1tex__t_bytes.sum,byte,25165824
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,l1tex__t_sector_hit_rate.pct,%,49.61
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,83.12
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,launch__block_size,,128
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,launch__grid_size,,8192
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,launch__occupancy_limit_registers,block,21
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,launch__occupancy_limit_shared_mem,block,28
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,launch__occupancy_limit_warps,block,12
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,launch__registers_per_thread,register/thread,23
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,launch__shared_mem_per_block_dynamic,byte/block,16
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,launch__waves_per_multiprocessor,,11.77
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,lts__t_bytes.sum,byte,12757888
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,28.16
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,19.49
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,83.12
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,87.89
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,4.74
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.00
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,2.07
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.12
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,3.25
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.10
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,1.01
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,8.98
+2026-10-30T03:52:15.783328+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton,128,float32,_layernorm_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,2.18
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,dram__bytes_read.sum,byte,81920
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,dram__bytes_write.sum,byte,1792
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,dram__throughput.avg.pct_of_peak_sustained_elapsed,%,1.36
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,gpu__time_duration.sum,ns,20672
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum,,27398
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,l1tex__data_pipe_lsu_wavefronts_mem_shared.sum,,839966
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,l1tex__t_bytes.sum,byte,37748736
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_ld.sum,byte,0
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,l1tex__t_bytes_pipe_lsu_mem_local_op_st.sum,byte,0
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,l1tex__t_sector_hit_rate.pct,%,33.04
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,l1tex__throughput.avg.pct_of_peak_sustained_elapsed,%,83.27
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,launch__block_size,,128
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,launch__grid_size,,8192
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,launch__occupancy_limit_blocks,block,24
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,launch__occupancy_limit_registers,block,21
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,launch__occupancy_limit_shared_mem,block,28
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,launch__occupancy_limit_warps,block,12
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,launch__registers_per_thread,register/thread,22
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,launch__shared_mem_per_block_dynamic,byte/block,16
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,launch__shared_mem_per_block_static,byte/block,0
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,launch__waves_per_multiprocessor,,11.77
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,lts__t_bytes.sum,byte,25339776
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,lts__throughput.avg.pct_of_peak_sustained_elapsed,%,51.96
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active,%,21.97
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_active,%,0
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,sm__throughput.avg.pct_of_peak_sustained_elapsed,%,83.27
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,sm__warps_active.avg.pct_of_peak_sustained_active,%,88.90
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio,inst,4.73
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio,inst,0.00
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio,inst,2.26
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio,inst,0.15
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio,inst,3.78
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio,inst,0.10
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio,inst,1.10
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio,inst,8.23
+2026-10-30T03:52:28.845620+00:00,bd424a7,NVIDIA L4,layernorm_residual,triton_residual,128,float32,_layernorm_residual_kernel,smsp__average_warps_issue_stalled_wait_per_issue_active.ratio,inst,2.14
