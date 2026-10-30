@@ -31,6 +31,10 @@ import time
 REMOTE_ROOT = "/root/tritonformer"
 LATENCY_CSV = "bench/results/latency.csv"
 COUNTERS_CSV = "bench/results/counters.csv"
+# Counters taken with `ncu --cache-control none` describe a different
+# condition (caches left warm between replay passes) from every row in
+# counters.csv, and the schema has no column to say so. They get their own file.
+WARM_COUNTERS_CSV = "bench/results/counters_cache_control_none.csv"
 
 TORCH_INDEX = "https://download.pytorch.org/whl/cu128"
 
@@ -42,7 +46,8 @@ TORCH_INDEX = "https://download.pytorch.org/whl/cu128"
 # mlp is the third fusion pair with existing sm_75 rows to compare against.
 COUNTER_GRID = [
     ("bench.run_attention", "attention",
-     ["triton_composed", "triton_flash"], 128),
+     ["triton_composed", "triton_composed_bmm",
+      "triton_flash", "triton_flash_tiled"], 128),
     ("bench.run_mlp", "mlp", ["triton_composed", "triton_fused"], 128),
     ("bench.run_layernorm_residual", "layernorm_residual",
      ["triton", "triton_residual"], 128),
@@ -253,6 +258,111 @@ def registers_body() -> str:
             f"blocks_per_sm_by_shared={blocks_by_shared} "
             f"blocks_per_sm={blocks} "
             f"occupancy_pct={blocks * num_warps / max_warps * 100:.2f}")
+    return "\n".join(lines)
+
+
+def _compiled(kernel, grid, *args, **constants):
+    """Launch once and hand back the compiled-kernel object, whose `asm`
+    dictionary (TTGIR, PTX) and metadata answer questions about what the
+    compiler did that no counter can."""
+    return kernel[grid](*args, **constants)
+
+
+def _describe_compiled(label: str, kernel) -> str:
+    ttgir = kernel.asm.get("ttgir", "")
+    ptx = kernel.asm.get("ptx", "")
+    return (f"{label}: n_regs={kernel.n_regs} n_spills={kernel.n_spills} "
+            f"shared_B={kernel.metadata.shared} "
+            f"num_stages={getattr(kernel.metadata, 'num_stages', 'n/a')} "
+            f"ttgir_scf_for={ttgir.count('scf.for')} "
+            f"ttgir_async_copy={ttgir.count('async_copy_global_to_local')} "
+            f"ttgir_async_wait={ttgir.count('async_wait')} "
+            f"ptx_cp_async={ptx.count('cp.async')}")
+
+
+def compile_report_body() -> str:
+    """The TTGIR check the review asked for: did `num_stages` do anything to
+    `_mlp_fused_kernel`, and is its H loop a runtime loop or unrolled?
+
+    README finding 2 says num_stages 1-3 changed latency by 0.003% "because
+    the loop is unrolled at compile time". H is a runtime argument, so it
+    should appear as `scf.for` in the TTGIR; if it does and the stage count
+    still leaves no `cp.async`/async_copy in the generated code, the
+    pipeliner declined (most plausibly for shared memory: two stages of the
+    64 KB w1+w2 tiles do not fit Turing's 64 KB, and whether they fit the
+    L4's 99 KB opt-in budget is exactly what the shared_B column shows).
+
+    Also reports the register footprint of the new attention kernels next to
+    the single-tile `_flash_kernel`'s, which is the review's "cut registers
+    2-4x" prediction in compiled-kernel metadata rather than in ncu.
+    """
+    import torch
+    import triton
+    from model.kernels.attention import (_bmm_kernel, _flash_kernel,
+                                         _flash_tiled_kernel)
+    from model.kernels.mlp import _mlp_fused_kernel
+
+    lines = [_describe_device(), ""]
+    seq, dim, hidden = 64, 192, 768
+    m = 8 * seq
+    x = torch.randn(m, dim, device="cuda")
+    w1 = torch.randn(hidden, dim, device="cuda") * 0.05
+    b1 = torch.randn(hidden, device="cuda")
+    w2 = torch.randn(dim, hidden, device="cuda") * 0.05
+    b2 = torch.randn(dim, device="cuda")
+    out = torch.empty_like(x)
+    for num_stages in (1, 2, 3):
+        try:
+            kernel = _compiled(
+                _mlp_fused_kernel, (triton.cdiv(m, 16),),
+                x, w1, b1, w2, b2, out, m, dim, hidden,
+                x.stride(0), x.stride(1), w1.stride(0), w1.stride(1),
+                w2.stride(0), w2.stride(1), out.stride(0), out.stride(1),
+                BLOCK_M=16, BLOCK_D=256, BLOCK_H=32,
+                num_warps=8, num_stages=num_stages)
+            lines.append(_describe_compiled(
+                f"_mlp_fused_kernel BLOCK_M=16 BLOCK_H=32 warps=8 "
+                f"num_stages={num_stages}", kernel))
+        except Exception as exc:
+            lines.append(f"_mlp_fused_kernel num_stages={num_stages}: "
+                         f"{type(exc).__name__}: {exc}")
+
+    batch, heads, head_dim = 8, 3, 64
+    q, k, v = (torch.randn(batch, heads, seq, head_dim, device="cuda")
+               for _ in range(3))
+    attn_out = torch.empty_like(q)
+    kernel = _compiled(
+        _flash_kernel, (batch, heads), q, k, v, attn_out,
+        q.stride(0), q.stride(1), q.stride(2), q.stride(3),
+        attn_out.stride(0), attn_out.stride(1), attn_out.stride(2),
+        attn_out.stride(3), seq, head_dim ** -0.5,
+        BLOCK_S=64, BLOCK_D=64, num_warps=4, num_stages=2)
+    lines.append(_describe_compiled("_flash_kernel BLOCK_S=64 warps=4", kernel))
+    for block_m, block_n, num_warps in [(16, 32, 4), (16, 64, 4), (32, 64, 4),
+                                        (64, 64, 4)]:
+        kernel = _compiled(
+            _flash_tiled_kernel, (triton.cdiv(seq, block_m), batch * heads),
+            q, k, v, attn_out,
+            q.stride(0), q.stride(1), q.stride(2), q.stride(3),
+            k.stride(0), k.stride(1), k.stride(2), k.stride(3),
+            v.stride(0), v.stride(1), v.stride(2), v.stride(3),
+            attn_out.stride(0), attn_out.stride(1), attn_out.stride(2),
+            attn_out.stride(3), heads, seq, head_dim ** -0.5,
+            BLOCK_M=block_m, BLOCK_N=block_n, BLOCK_D=64,
+            num_warps=num_warps, num_stages=2)
+        lines.append(_describe_compiled(
+            f"_flash_tiled_kernel BLOCK_M={block_m} BLOCK_N={block_n} "
+            f"warps={num_warps}", kernel))
+    scores = torch.empty(batch, heads, seq, seq, device="cuda")
+    kt = k.transpose(-2, -1)
+    kernel = _compiled(
+        _bmm_kernel, (1, 1, batch * heads), q, kt, scores,
+        seq, seq, head_dim, heads, head_dim ** -0.5,
+        q.stride(0), q.stride(1), q.stride(2), q.stride(3),
+        kt.stride(0), kt.stride(1), kt.stride(2), kt.stride(3),
+        scores.stride(0), scores.stride(1), scores.stride(2), scores.stride(3),
+        BLOCK_M=64, BLOCK_N=64, BLOCK_K=32, num_warps=4, num_stages=2)
+    lines.append(_describe_compiled("_bmm_kernel 64x64x32 warps=4", kernel))
     return "\n".join(lines)
 
 
@@ -525,7 +635,8 @@ def precision_check_body() -> str:
     return "\n".join(lines)
 
 
-def counters_body(clock_control: str | None = None) -> str:
+def counters_body(clock_control: str | None = None,
+                  metrics: str = "base") -> str:
     """The ncu permission probe (prediction 1's only admissible instrument).
 
     Runs once, early, and on the smallest grid, because the expected outcome is
@@ -559,10 +670,11 @@ def counters_body(clock_control: str | None = None) -> str:
     # from them once written.
     if clock_control:
         os.environ["TRITONFORMER_NCU_CLOCK_CONTROL"] = clock_control
+    from bench.collect_counters import METRIC_SETS
     from bench.profile import profile_kernel
     try:
         rows = profile_kernel("bench.run_mlp", "mlp", "triton_fused", 1,
-                              "float32")
+                              "float32", metrics=METRIC_SETS[metrics])
         lines.append(f"VERDICT: counters AVAILABLE; {len(rows)} metric rows")
         lines += [f"  {row['kernel_name']} {row['metric']} = {row['value']}"
                   for row in rows]
@@ -591,7 +703,9 @@ def sweep_body(precision: str = "ieee",
 
 def counter_grid_body(precision: str = "ieee",
                       include_vit: bool = False,
-                      clock_control: str | None = None) -> tuple[str, str]:
+                      clock_control: str | None = None,
+                      cache_control: str | None = None,
+                      metrics: str = "base") -> tuple[str, str]:
     """Prediction 1's measurement: DRAM traffic per arm, at the same kernels,
     variants and batch sizes already measured on sm_75.
 
@@ -610,10 +724,13 @@ def counter_grid_body(precision: str = "ieee",
     `_mlp_fused_kernel`. The driver it duplicated documents the correct rule and
     now also validates kernel identity; calling it is the fix.
 
-    Returns (log, csv_text).
+    `cache_control="none"` (the review's "rerun with --cache-control none")
+    routes the rows to WARM_COUNTERS_CSV; `metrics="extended"` adds the
+    roofline/stall set. Returns (log, csv_text).
     """
     if clock_control:
         os.environ["TRITONFORMER_NCU_CLOCK_CONTROL"] = clock_control
+    out_csv = WARM_COUNTERS_CSV if cache_control == "none" else COUNTERS_CSV
     ncu = next((c for c in _ncu_candidates() if os.path.dirname(c)
                 and os.path.exists(c)), None)
     if ncu:
@@ -622,11 +739,14 @@ def counter_grid_body(precision: str = "ieee",
     env = _precision_env(precision)
     if clock_control:
         env["TRITONFORMER_NCU_CLOCK_CONTROL"] = clock_control
+    if cache_control:
+        env["TRITONFORMER_NCU_CACHE_CONTROL"] = cache_control
 
     arms = [f"{module}:{kernel}:{variant}:{batch}"
             for module, kernel, variants, batch in COUNTER_GRID
             for variant in variants]
     log = [_run([sys.executable, "-m", "bench.collect_counters",
+                 "--metrics", metrics, "--out", out_csv,
                  *sum((["--arm", arm] for arm in arms), [])], env, stream=True)]
 
     # The per-kernel arms above run first and the whole-model grid is opt-in,
@@ -636,9 +756,45 @@ def counter_grid_body(precision: str = "ieee",
     # context, and ncu replays every kernel of a full forward pass, so it is by
     # far the more expensive of the two on a metered GPU.
     if include_vit:
-        log.append(_run([sys.executable, "-m", "bench.collect_counters"], env,
+        log.append(_run([sys.executable, "-m", "bench.collect_counters",
+                         "--metrics", metrics, "--out", out_csv], env,
                         stream=True))
-    return "\n".join(log), _read(COUNTERS_CSV)
+    return "\n".join(log), _read(out_csv)
+
+
+def followup_counters_body(clock_control: str | None = None
+                           ) -> tuple[str, dict[str, str]]:
+    """The review's counter follow-up in one container: probe the extended
+    metric set on the smallest grid first (an unknown metric name fails a whole
+    capture, and finding that out inside the grid would cost the grid), then
+    the COUNTER_GRID cold (ncu's default cache flush, comparable to every
+    existing counters.csv row) and warm (`--cache-control none`). One container
+    rather than three because each cold start of this image is billed L4 time
+    spent pulling layers, not measuring."""
+    probe = counters_body(clock_control, metrics="extended")
+    if "counters AVAILABLE" not in probe:
+        return probe, {}
+    cold_log, cold_csv = counter_grid_body(
+        clock_control=clock_control, metrics="extended")
+    warm_log, warm_csv = counter_grid_body(
+        clock_control=clock_control, cache_control="none", metrics="extended")
+    return ("\n".join([probe, cold_log, warm_log]),
+            {"counter_grid.csv": cold_csv, "counter_grid_warm.csv": warm_csv})
+
+
+def followup_tests_body(precision: str = "ieee") -> str:
+    """Correctness of the two new attention arms plus the compile report,
+    sharing one container for the same billing reason as above."""
+    log = tests_body(precision, ("tests/test_attention.py",
+                                 "tests/test_profile.py"))
+    # In a subprocess at the stated precision, not inline: Triton reads
+    # TRITON_F32_DEFAULT at compile time, and the register counts a TF32 dot
+    # needs differ from the IEEE ones every counters.csv row was taken under.
+    # (The 2026-10-29 run called compile_report_body() inline and so reported
+    # TF32 register counts; its shared-memory and pipelining columns, which do
+    # not depend on the dot precision, are what the README cites.)
+    return (log + f"\n===== compile_report [TRITON_F32_DEFAULT={precision}]\n"
+            + _body_in_subprocess("compile_report", precision))
 
 
 def _read(path: str) -> str:
@@ -687,7 +843,7 @@ if modal is not None:
         return img.add_local_dir(
             ".", remote_path=REMOTE_ROOT, copy=True,
             ignore=["**/.venv/**", "**/.venv", "**/__pycache__/**",
-                    "**/*.pyc", "bench/results/**",
+                    "**/*.pyc", "bench/results/**", "out/**", "docs/**",
                     # data/cifar-10-python.tar.gz IS included, deliberately:
                     # tests/test_end_to_end.py builds CIFAR10(download=True),
                     # and fetching 170 MB from the upstream mirror inside the
@@ -735,19 +891,41 @@ if modal is not None:
     def smoke() -> str:
         return _echo(smoke_body())
 
+    @app.function(image=image, timeout=900)
+    def unit_tests() -> str:
+        """CPU-only: these suites stub out ncu and never touch a device, so
+        they prove the profiling changes without an L4. tests/test_harness.py
+        is not among them: its do_bench calls need a GPU."""
+        return _echo(tests_body("ieee", ("tests/test_profile.py",
+                                         "tests/test_registry.py")))
+
     @app.function(image=image, gpu="L4", timeout=2400)
-    def tests(precision: str = "ieee") -> str:
-        return _echo(tests_body(precision))
+    def tests(precision: str = "ieee", extra_args: tuple[str, ...] = ()) -> str:
+        return _echo(tests_body(precision, extra_args))
+
+    @app.function(image=image, gpu="L4", timeout=1200)
+    def followup_tests(precision: str = "ieee") -> str:
+        return _echo(followup_tests_body(precision))
 
     @app.function(image=ncu_image, gpu="L4", timeout=900)
-    def probe_counters(clock_control: str | None = None) -> str:
-        return _echo(counters_body(clock_control))
+    def probe_counters(clock_control: str | None = None,
+                       metrics: str = "base") -> str:
+        return _echo(counters_body(clock_control, metrics))
 
     @app.function(image=ncu_image, gpu="L4", timeout=2700)
     def counter_grid(precision: str = "ieee", include_vit: bool = False,
-                     clock_control: str | None = None) -> tuple[str, str]:
-        log, csv_text = counter_grid_body(precision, include_vit, clock_control)
+                     clock_control: str | None = None,
+                     cache_control: str | None = None,
+                     metrics: str = "base") -> tuple[str, str]:
+        log, csv_text = counter_grid_body(precision, include_vit, clock_control,
+                                          cache_control, metrics)
         return _echo(log), csv_text
+
+    @app.function(image=ncu_image, gpu="L4", timeout=3600)
+    def followup_counters(clock_control: str | None = None
+                          ) -> tuple[str, dict[str, str]]:
+        log, csvs = followup_counters_body(clock_control)
+        return _echo(log), csvs
 
     @app.function(image=image, gpu="L4", timeout=1800)
     def predictions() -> str:
@@ -765,8 +943,9 @@ if modal is not None:
         return _echo("\n\n".join(out))
 
     @app.function(image=image, gpu="L4", timeout=2400)
-    def sweep_kernels(precision: str = "ieee") -> tuple[str, str]:
-        log, csv_text = sweep_body(precision, SWEEP_KERNEL_MODULES)
+    def sweep_kernels(precision: str = "ieee",
+                      modules: list[str] | None = None) -> tuple[str, str]:
+        log, csv_text = sweep_body(precision, modules or SWEEP_KERNEL_MODULES)
         return _echo(log), csv_text
 
     # Timeout sized to the remaining GPU budget rather than to the work: this
@@ -779,7 +958,9 @@ if modal is not None:
 
     @app.local_entrypoint()
     def run(step: str, out_dir: str, precision: str = "ieee",
-            include_vit: bool = False, clock_control: str | None = None) -> None:
+            include_vit: bool = False, clock_control: str | None = None,
+            cache_control: str | None = None, metrics: str = "base",
+            tests_args: str = "", modules: str = "") -> None:
         """One step per invocation, results written to out_dir.
 
         `modal run` discards a function's return value, so the CSVs a sweep
@@ -787,35 +968,53 @@ if modal is not None:
         single `step` rather than running everything is the budget discipline
         the module docstring describes: each L4 entrypoint is launched
         deliberately, after the cheaper one before it came back clean.
+
+        `--tests-args "tests/test_attention.py -k tiled"` restricts `tests`;
+        `--modules bench.run_attention,bench.run_mlp` restricts `sweep_kernels`.
         """
-        steps = {"build_check": build_check, "build_check_ncu": build_check_ncu,
-                 "smoke": smoke, "tests": tests,
-                 "probe_counters": probe_counters, "predictions": predictions,
-                 "sweep_kernels": sweep_kernels, "sweep_vit": sweep_vit,
-                 "counter_grid": counter_grid}
-        takes_precision = {"tests", "sweep_kernels", "sweep_vit",
-                           "counter_grid"}
+        steps = {
+            "build_check": (build_check, {}),
+            "build_check_ncu": (build_check_ncu, {}),
+            "unit_tests": (unit_tests, {}),
+            "smoke": (smoke, {}),
+            "tests": (tests, {"precision": precision,
+                              "extra_args": tuple(tests_args.split())}),
+            "followup_tests": (followup_tests, {"precision": precision}),
+            "probe_counters": (probe_counters, {"clock_control": clock_control,
+                                                "metrics": metrics}),
+            "predictions": (predictions, {}),
+            "sweep_kernels": (sweep_kernels, {
+                "precision": precision,
+                "modules": [m for m in modules.split(",") if m] or None}),
+            "sweep_vit": (sweep_vit, {"precision": precision}),
+            "counter_grid": (counter_grid, {
+                "precision": precision, "include_vit": include_vit,
+                "clock_control": clock_control, "cache_control": cache_control,
+                "metrics": metrics}),
+            "followup_counters": (followup_counters,
+                                  {"clock_control": clock_control}),
+        }
+        function, kwargs = steps[step]
         os.makedirs(out_dir, exist_ok=True)
         started = time.monotonic()
-        result = (steps[step].remote(precision, include_vit, clock_control)
-                  if step == "counter_grid" else
-                  steps[step].remote(clock_control) if step == "probe_counters"
-                  else steps[step].remote(precision) if step in takes_precision
-                  else steps[step].remote())
+        result = function.remote(**kwargs)
         elapsed = time.monotonic() - started
-        log, csv_text = result if isinstance(result, tuple) else (result, None)
+        log, payload = result if isinstance(result, tuple) else (result, None)
+        csvs = ({f"{step}.csv": payload} if isinstance(payload, str)
+                else payload or {})
         with open(os.path.join(out_dir, f"{step}.log"), "w") as handle:
             handle.write(log)
-        if csv_text is not None:
-            with open(os.path.join(out_dir, f"{step}.csv"), "w") as handle:
-                handle.write(csv_text)
+        for name, text in csvs.items():
+            with open(os.path.join(out_dir, name), "w") as handle:
+                handle.write(text)
         print(f"[{step}] {elapsed:.1f}s wall (upper bound on billed GPU "
               f"seconds: includes queueing, container start and image pull)")
         with open(os.path.join(out_dir, "elapsed.txt"), "a") as handle:
             handle.write(f"{step} {elapsed:.1f}\n")
+        written = ", ".join(f"{name} ({len(text.splitlines())} lines)"
+                            for name, text in csvs.items())
         print(f"[{step}] wrote {out_dir}/{step}.log"
-              + (f" and {step}.csv ({len(csv_text.splitlines())} lines)"
-                 if csv_text is not None else ""))
+              + (f" and {written}" if written else ""))
 
 
 def merge_csv(remote_text: str, path: str) -> str:
@@ -832,6 +1031,12 @@ def merge_csv(remote_text: str, path: str) -> str:
     remote_lines = [line for line in remote_text.splitlines() if line.strip()]
     if not remote_lines:
         return f"{path}: nothing returned, nothing merged"
+    if not os.path.exists(path):
+        # A first-ever file for this condition (e.g. the warm-cache counters)
+        # takes the container's text verbatim, header included.
+        with open(path, "w", newline="") as handle:
+            handle.write(remote_text)
+        return f"{path}: created with {len(remote_lines) - 1} rows"
     with open(path, newline="") as handle:
         local_text = handle.read()
     local_lines = [line for line in local_text.splitlines() if line.strip()]
@@ -883,7 +1088,7 @@ def _local_main() -> None:
     parser.add_argument("body", choices=["device", "smoke", "registers",
                                          "tf32", "sdpa", "monolithic",
                                          "counters", "precision_check",
-                                         "merge"])
+                                         "compile_report", "merge"])
     parser.add_argument("--csv", help="file holding the returned CSV text")
     parser.add_argument("--into", default=LATENCY_CSV)
     args = parser.parse_args()
@@ -895,7 +1100,8 @@ def _local_main() -> None:
               "registers": registers_body, "tf32": tf32_body,
               "sdpa": sdpa_body, "monolithic": monolithic_body,
               "counters": counters_body,
-              "precision_check": precision_check_body}
+              "precision_check": precision_check_body,
+              "compile_report": compile_report_body}
     print(bodies[args.body]())
 
 
